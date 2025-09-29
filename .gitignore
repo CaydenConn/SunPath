@@ -8,4 +8,6 @@ frontend/node_modules/
 frontend/.expo/
 frontend/dist/
 frontend/web-build/
+/frontend/react-native-frontend/FirebaseConfig.js
+
 *.log
