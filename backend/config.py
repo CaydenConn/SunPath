@@ -20,7 +20,7 @@ class Config:
     
     # Weather API Configuration
     WEATHER_API_KEY = os.environ.get('WEATHER_API_KEY')
-    WEATHER_API_BASE_URL = 'http://api.weatherapi.com/v1'
+    WEATHER_API_BASE_URL = 'http://api.weatherapi.com/v1/'
     
     # Google Maps Configuration
     GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY')
