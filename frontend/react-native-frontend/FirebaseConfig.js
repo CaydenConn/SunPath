@@ -15,6 +15,10 @@ const firebaseConfig = {
   appId: FIREBASE_APP_ID,
 };
 
+// Debug: Check if env variables are loading
+console.log('Firebase API Key loaded:', FIREBASE_API_KEY ? 'YES ✓' : 'NO ✗');
+console.log('Firebase Project ID:', FIREBASE_PROJECT_ID);
+
 // Initialize Firebase
 export const FIREBASE_APP = initializeApp(firebaseConfig);
 export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
