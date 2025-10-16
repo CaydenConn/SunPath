@@ -6,8 +6,8 @@ import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth'
 import { FIREBASE_AUTH } from './FirebaseConfig'
 
-import Login from './screens/Login'
-import LoggedIn from './screens/LoggedInTemp'
+import Login from './src/screens/Login'
+import MainPage from './src/screens/MainPage'
 
 const Stack = createNativeStackNavigator();
 
@@ -15,8 +15,8 @@ const InsideStack = createNativeStackNavigator();
 
 function InsideLayout() {
   return (
-    <InsideStack.Navigator>
-      <InsideStack.Screen name="LoggedIn" component={LoggedIn}/>
+    <InsideStack.Navigator screenOptions={{ headerShown: false }}>
+      <InsideStack.Screen name="LoggedIn" component={MainPage}/>
     </InsideStack.Navigator>
   );
 }
@@ -32,11 +32,11 @@ export default function App() {
   }, []);
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName='Login'>
+      <Stack.Navigator initialRouteName='Inside'>
         {user ? (
-          <Stack.Screen name='Inside' component={InsideLayout} options={{ headerShown: false }}/>
-        ) : (
           <Stack.Screen name='Login' component={Login} options={{ headerShown: false }}/>
+        ) : (
+          <Stack.Screen name='Inside' component={InsideLayout} options={{ headerShown: false }}/>
         )}
       </Stack.Navigator>
     </NavigationContainer>
