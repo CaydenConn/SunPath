@@ -1,12 +1,26 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { MapViewProps, Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 
-const Map = forwardRef((props, ref) => {
+
+// Type for the user location state
+type UserLocation = {
+  latitude: number;
+  longitude: number;
+};
+
+// Type for the ref object exposed via forwardRef
+export type MapRef = {
+  centerOnUser: () => void;
+};
+
+type MapProps = MapViewProps;
+
+const Map = forwardRef<MapRef, MapProps>((props, ref) => {
   // State for user-added markers
-  const [userLocation, setUserLocation] = useState(null);
-  const mapRef = useRef(null);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const mapRef = useRef<MapView>(null);
 
   // Get user location on component mount
   useEffect(() => {
@@ -38,9 +52,10 @@ const Map = forwardRef((props, ref) => {
   const centerOnUser = () => {
       if (userLocation && mapRef.current) {
           mapRef.current.animateToRegion({
-              ...userLocation,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421,
           }, 1000);
       } else {
           Alert.alert('Location Not Available', 'Your location is not available yet');

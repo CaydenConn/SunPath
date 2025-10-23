@@ -1,12 +1,12 @@
 import { StyleSheet, Text, TouchableWithoutFeedback, View, Image } from 'react-native';
-import { styles_header } from '../../styles/themes.js'
+import { styles_header } from '../../styles/themes'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Header() {
     
     const insets = useSafeAreaInsets();
 
-    const handleSettingsPress = () => {
+    const handleSettingsPress = (): void => {
         console.log("Settings Pressed");
     };
 

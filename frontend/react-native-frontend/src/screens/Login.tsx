@@ -2,18 +2,18 @@ import { View, Text, StyleSheet, TextInput, ActivityIndicator, Button, KeyboardA
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
-const Login = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+const Login : React.FC = () => {
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
     const auth = FIREBASE_AUTH;
 
-    const signIn = async () => {
+    const signIn = async (): Promise<void> => {
         setLoading(true);
         try {
             const response = await signInWithEmailAndPassword(auth, email, password);
             console.log(response);
-        } catch (error) {
+        } catch (error: any) {
             console.log(error);
             alert('Sign in failed: ' + error.message);
         } finally {
@@ -21,13 +21,13 @@ const Login = () => {
         }
     }
 
-    const signUp = async () => {
+    const signUp = async (): Promise<void> => {
         setLoading(true);
         try {
             const response = await createUserWithEmailAndPassword(auth, email, password);
             console.log(response);
             alert('Check your email!');
-        } catch (error) {
+        } catch (error: any) {
             console.log(error);
             alert('Sign up failed: ' + error.message);
         } finally {
