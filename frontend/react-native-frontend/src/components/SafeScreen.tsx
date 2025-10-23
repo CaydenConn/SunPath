@@ -1,8 +1,13 @@
-import React from 'react';
-import { View } from 'react-native';
+import React, { ReactNode } from 'react';
+import { StyleProp, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function SafeScreen({ children, style }) {
+type SafeScreenProps = {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+};
+
+export default function SafeScreen({ children, style }: SafeScreenProps) {
   const insets = useSafeAreaInsets();
 
   return (

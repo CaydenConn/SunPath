@@ -1,7 +1,11 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, TouchableOpacity, Text, GestureResponderEvent } from 'react-native';
 
-export default function CenterButton({ onPress }) {
+type CenterButtonProps = {
+  onPress: (event: GestureResponderEvent) => void;
+};
+
+export default function CenterButton({ onPress }: CenterButtonProps) {
     return (
         <TouchableOpacity 
             activeOpacity={0.75}
