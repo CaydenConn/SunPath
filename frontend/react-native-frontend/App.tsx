@@ -8,6 +8,7 @@ import { FIREBASE_AUTH } from './FirebaseConfig'
 
 import Login from './src/screens/Login'
 import MainPage from './src/screens/MainPage'
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 type RootStackParam = {
   Login: undefined;
@@ -39,15 +40,17 @@ export default function App() {
     });
   }, []);
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName='Inside'>
-        {user ? (
-          <Stack.Screen name='Login' component={Login} options={{ headerShown: false }}/>
-        ) : (
-          <Stack.Screen name='Inside' component={InsideLayout} options={{ headerShown: false }}/>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <GestureHandlerRootView>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName='Inside'>
+          {user ? (
+            <Stack.Screen name='Login' component={Login} options={{ headerShown: false }}/>
+          ) : (
+            <Stack.Screen name='Inside' component={InsideLayout} options={{ headerShown: false }}/>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 

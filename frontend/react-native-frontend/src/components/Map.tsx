@@ -78,7 +78,7 @@ const Map = forwardRef<MapRef, MapProps>((props, ref) => {
       showsMyLocationButton={false}
     >
       {/* User Location Marker - Custom marker for your position */}
-      {userLocation && (
+      {/* {userLocation && (
           <Marker
               coordinate={userLocation}
               title="You Are Here"
@@ -89,7 +89,7 @@ const Map = forwardRef<MapRef, MapProps>((props, ref) => {
                   <View style={styles.userMarkerInner} />
               </View>
           </Marker>
-      )}
+      )} */}
     </MapView>
   );
 });
@@ -98,6 +98,7 @@ const styles = StyleSheet.create({
     map: {
         width: '100%',
         height: '100%',
+        zIndex: -1000
     },
     userMarker: {
         width: 40,
