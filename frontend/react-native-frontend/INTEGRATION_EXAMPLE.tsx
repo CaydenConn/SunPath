@@ -1,8 +1,16 @@
+/**
+ * EXAMPLE: Updated Login.tsx with User Profile Integration
+ * 
+ * This shows how to integrate the UserService into your existing login flow.
+ * Copy the relevant parts into your actual Login.tsx
+ */
+
 import { View, Text, StyleSheet, TextInput, ActivityIndicator, Button, KeyboardAvoidingView} from 'react-native';
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
-import { ensureUserProfile } from '../services/UserService';
+import { ensureUserProfile } from '../services/UserService'; // NEW IMPORT
+
 const Login : React.FC = () => {
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
@@ -15,7 +23,7 @@ const Login : React.FC = () => {
             const response = await signInWithEmailAndPassword(auth, email, password);
             console.log(response);
             
-            // Ensure user profile exists in backend
+            // NEW: Ensure user profile exists in Firestore
             try {
                 const profile = await ensureUserProfile(email);
                 console.log('User profile loaded:', profile);
@@ -23,6 +31,7 @@ const Login : React.FC = () => {
                 console.error('Failed to load user profile:', error);
                 // Don't block login if profile fails
             }
+            
         } catch (error: any) {
             console.log(error);
             alert('Sign in failed: ' + error.message);
@@ -37,7 +46,7 @@ const Login : React.FC = () => {
             const response = await createUserWithEmailAndPassword(auth, email, password);
             console.log(response);
             
-            // Create user profile in backend
+            // NEW: Create user profile in Firestore
             try {
                 const profile = await ensureUserProfile(email);
                 console.log('User profile created:', profile);
@@ -46,6 +55,7 @@ const Login : React.FC = () => {
                 console.error('Failed to create user profile:', error);
                 alert('Account created, but profile setup failed. Please try logging in.');
             }
+            
         } catch (error: any) {
             console.log(error);
             alert('Sign up failed: ' + error.message);
@@ -89,3 +99,89 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff'
     }
 });
+
+
+/**
+ * EXAMPLE: How to use UserService in other components
+ */
+
+// Example 1: Add a favorite address when user saves a location
+import { addFavoriteAddress } from '../services/UserService';
+
+async function saveLocationAsFavorite() {
+    try {
+        const favorites = await addFavoriteAddress({
+            address: "123 Main St, Tallahassee, FL",
+            latitude: 30.4383,
+            longitude: -84.2807,
+            label: "Home"
+        });
+        console.log('Updated favorites:', favorites);
+        alert('Location saved to favorites!');
+    } catch (error) {
+        alert('Failed to save favorite');
+    }
+}
+
+// Example 2: Track navigation when user starts a route
+import { trackNavigation } from '../services/UserService';
+
+async function startNavigation(destination: any) {
+    // Start the actual navigation...
+    
+    // Track in recent addresses (don't await, runs in background)
+    trackNavigation(
+        destination.address,
+        destination.latitude,
+        destination.longitude,
+        destination.name
+    );
+}
+
+// Example 3: Load and display user's favorites
+import { getFavoriteAddresses, Address } from '../services/UserService';
+
+function FavoritesScreen() {
+    const [favorites, setFavorites] = useState<Address[]>([]);
+    const [loading, setLoading] = useState(true);
+    
+    useEffect(() => {
+        loadFavorites();
+    }, []);
+    
+    async function loadFavorites() {
+        try {
+            const favs = await getFavoriteAddresses();
+            setFavorites(favs);
+        } catch (error) {
+            console.error('Failed to load favorites:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
+    
+    // Render favorites list...
+}
+
+// Example 4: Load and display recent addresses
+import { getRecentAddresses } from '../services/UserService';
+
+function RecentAddressesScreen() {
+    const [recent, setRecent] = useState<Address[]>([]);
+    
+    useEffect(() => {
+        loadRecent();
+    }, []);
+    
+    async function loadRecent() {
+        try {
+            const recentAddrs = await getRecentAddresses();
+            setRecent(recentAddrs);
+        } catch (error) {
+            console.error('Failed to load recent addresses:', error);
+        }
+    }
+    
+    // Render recent addresses list...
+}
+

@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Button } from 'react-native';
 import React, { useRef } from 'react';
 
 import Header from '../components/Header'
@@ -36,9 +36,9 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
             <CenterButton onPress={handleCenter}/>
             
             {/* Logout button */}
-            {/* <View style={styles.logoutContainer}>
+            <View style={styles.logoutContainer}>
                 <Button title="Log out" onPress={() => FIREBASE_AUTH.signOut()} />
-            </View> */}
+            </View>
         </View>
     );
 }
@@ -46,6 +46,11 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    logoutContainer: {
+        position: 'absolute',
+        bottom: 20,
+        right: 20,
     },
 });
 
