@@ -2,11 +2,19 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from config import Config
+from models.database import initialize_firebase
+from routes.users import users_bp
 import requests
 
 app = Flask(__name__)
 app.config.from_object(Config)
 CORS(app)  # Enable CORS for React frontend
+
+# Initialize Firebase Admin SDK
+initialize_firebase()
+
+# Register blueprints
+app.register_blueprint(users_bp)
 
 def build_weather_api_call(lat_lon, aqi_option = "no", type = "current"):
     return f"{app.config['WEATHER_API_BASE_URL']}{type}.json?key={app.config['WEATHER_API_KEY']}&q={lat_lon}&aqi={aqi_option}"
@@ -26,6 +34,8 @@ def get_user_pos_current_weather():
     
     return jsonify({"data": data})
 
+@app.route('/api/get_user_pos_forecast_weather', methods=['GET'])
+
 @app.route('/api/data', methods=['POST'])
 def post_data():
     data = request.get_json()
@@ -36,4 +46,4 @@ def not_found(error):
     return jsonify({"error": "Not found"}), 404
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
