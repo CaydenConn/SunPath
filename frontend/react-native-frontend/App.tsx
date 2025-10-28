@@ -8,6 +8,7 @@ import { FIREBASE_AUTH } from './FirebaseConfig'
 
 import Login from './src/screens/Login'
 import MainPage from './src/screens/MainPage'
+import SettingsPage from './src/screens/SettingsPage' // <-- add this import
 
 type RootStackParam = {
   Login: undefined;
@@ -15,7 +16,8 @@ type RootStackParam = {
 };
 
 type InsideStackParam = {
-  MainPage: undefined;
+  // MainPage: undefined;
+  Settings: undefined; // <-- add this route
 };
 
 const Stack = createNativeStackNavigator<RootStackParam>();
@@ -23,8 +25,9 @@ const InsideStack = createNativeStackNavigator<InsideStackParam>();
 
 function InsideLayout() {
   return (
-    <InsideStack.Navigator screenOptions={{ headerShown: false }}>
-      <InsideStack.Screen name="MainPage" component={MainPage}/>
+    <InsideStack.Navigator screenOptions={{ headerShown: false }} /* initialRouteName="Settings" */>
+      {/* Replace MainPage with Settings to preview the settings UI */}
+      <InsideStack.Screen name="Settings" component={SettingsPage}/>
     </InsideStack.Navigator>
   );
 }
