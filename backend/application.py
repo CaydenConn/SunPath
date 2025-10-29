@@ -16,8 +16,11 @@ initialize_firebase()
 # Register blueprints
 app.register_blueprint(users_bp)
 
-def build_weather_api_call(lat_lon, aqi_option = "no", type = "current"):
-    return f"{app.config['WEATHER_API_BASE_URL']}{type}.json?key={app.config['WEATHER_API_KEY']}&q={lat_lon}&aqi={aqi_option}"
+def build_weather_api_call(lat_lon, aqi_option = "no", type = "current", days = 1):
+    url = f"{app.config['WEATHER_API_BASE_URL']}{type}.json?key={app.config['WEATHER_API_KEY']}&q={lat_lon}&aqi={aqi_option}"
+    if type == "forecast":
+        url += f"&days={days}"
+    return url
 
 # Routes
 @app.route('/')
@@ -28,13 +31,50 @@ def home():
 def get_user_pos_current_weather():
     lat_lon = request.args.get('lat_lon', '30.4383,-84.2807')  # Tallahassee coordinates
     aqi_option = request.args.get('aqi_option', 'yes')  # Default to include AQI
-    weather_api_call = build_weather_api_call(lat_lon, aqi_option)
+    weather_api_call = build_weather_api_call(lat_lon, aqi_option, 'current')
     response = requests.get(weather_api_call)
     data = response.json()
     
     return jsonify({"data": data})
 
 @app.route('/api/get_user_pos_forecast_weather', methods=['GET'])
+def get_user_pos_forecast_weather():
+    lat_lon = request.args.get('lat_lon', '30.4383,-84.2807')
+    hours = int(request.args.get('hours', 9))  # Default to 9 hours
+    
+    # Request 2 days to ensure we have enough hourly data
+    weather_api_call = build_weather_api_call(lat_lon, 'no', 'forecast', days=2)
+    response = requests.get(weather_api_call)
+    data = response.json()
+    
+    # Extract next N hours from current time
+    if 'location' in data and 'forecast' in data:
+        current_time = data['location']['localtime_epoch']
+        
+        # Get all hourly forecasts from all forecast days
+        all_hours = []
+        for day in data['forecast']['forecastday']:
+            all_hours.extend(day['hour'])
+        
+        # Filter to only future hours and limit to requested number
+        future_hours = [
+            hour for hour in all_hours 
+            if hour['time_epoch'] >= current_time
+        ][:hours]
+        
+        # Return modified data with only next N hours
+        return jsonify({
+            "data": {
+                "current": data.get('current'),
+                "location": data.get('location'),
+                "forecast": {
+                    "next_hours": future_hours
+                }
+            }
+        })
+    
+    # Fallback to original response if structure is unexpected
+    return jsonify({"data": data})
 
 @app.route('/api/data', methods=['POST'])
 def post_data():

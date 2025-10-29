@@ -11,6 +11,10 @@ const BASE_URL = API_BASE_URL || (__DEV__
   ? 'http://localhost:5000'  // Development
   : 'https://your-production-url.com');  // Production
 
+// Debug: Log the API URL being used
+console.log('🔧 API_BASE_URL from env:', API_BASE_URL);
+console.log('🔧 Using BASE_URL:', BASE_URL);
+
 export interface Address {
   address: string;
   latitude: number;
@@ -82,12 +86,24 @@ async function apiRequest(
 
 export async function createUserProfile(email: string): Promise<UserProfile> {
   const response = await apiRequest('/api/users/create', 'POST', { email });
-  return response.user;
+  const user = response.user;
+  // Ensure arrays are always defined
+  return {
+    ...user,
+    favorite_addresses: user.favorite_addresses || [],
+    recent_addresses: user.recent_addresses || []
+  };
 }
 
 export async function getUserProfile(): Promise<UserProfile> {
   const response = await apiRequest('/api/users/profile', 'GET');
-  return response.user;
+  const user = response.user;
+  // Ensure arrays are always defined
+  return {
+    ...user,
+    favorite_addresses: user.favorite_addresses || [],
+    recent_addresses: user.recent_addresses || []
+  };
 }
 
 export async function deleteUserProfile(): Promise<void> {

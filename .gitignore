@@ -2,7 +2,7 @@ backend/venv/
 backend/__pycache__/
 backend/*.pyc
 backend/.env
-
+backend/sunpath-37cbe-firebase-adminsdk-fbsvc-fe8ece3f3d.json
 
 frontend/node_modules/
 frontend/.expo/

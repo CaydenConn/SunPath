@@ -48,8 +48,8 @@ class User:
             'email': self.email,
             'created_at': self.created_at,
             'updated_at': self.updated_at,
-            'favorite_addresses': [addr.to_dict() for addr in self.favorite_addresses],
-            'recent_addresses': [addr.to_dict() for addr in self.recent_addresses]
+            'favorite_addresses': [addr.to_dict() for addr in (self.favorite_addresses or [])],
+            'recent_addresses': [addr.to_dict() for addr in (self.recent_addresses or [])]
         }
         return data
     
