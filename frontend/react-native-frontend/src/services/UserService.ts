@@ -11,10 +11,6 @@ const BASE_URL = API_BASE_URL || (__DEV__
   ? 'http://localhost:5000'  // Development
   : 'https://your-production-url.com');  // Production
 
-// Debug: Log the API URL being used
-console.log('🔧 API_BASE_URL from env:', API_BASE_URL);
-console.log('🔧 Using BASE_URL:', BASE_URL);
-
 export interface Address {
   address: string;
   latitude: number;

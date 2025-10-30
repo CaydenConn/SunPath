@@ -1,6 +1,6 @@
 import 'react-native-get-random-values'; 
-import { View, StyleSheet, TouchableOpacity, Text, Button } from 'react-native';
-import React, { useRef, useState, useEffect, Component } from 'react';
+import { View, StyleSheet, Button } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 
 import Header from '../components/Header'
@@ -11,6 +11,8 @@ import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { GOOGLE_PLACES_API_KEY } from '@env';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import * as Location from 'expo-location';
+import polyline from '@mapbox/polyline';
 
 // Define your navigation stack types
 type RootStackParamList = {
@@ -24,38 +26,17 @@ type MainPageProps = {
   route: RouteProp<RootStackParamList, 'MainPage'>;
 };
 
-// Error boundary for the search bar
-class SearchBarErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
-    constructor(props: any) {
-        super(props);
-        this.state = { hasError: false };
-    }
-
-    static getDerivedStateFromError(error: any) {
-        console.error('🔴 SearchBar crashed:', error);
-        return { hasError: true };
-    }
-
-    componentDidCatch(error: any, errorInfo: any) {
-        console.error('🔴 SearchBar error details:', error, errorInfo);
-    }
-
-    render() {
-        if (this.state.hasError) {
-            return (
-                <View style={{ padding: 10, backgroundColor: '#ffcccc', margin: 15, borderRadius: 8 }}>
-                    <Text style={{ color: '#cc0000' }}>Search unavailable</Text>
-                </View>
-            );
-        }
-        return this.props.children;
-    }
+interface RouteCoordinates {
+    latitude: number;
+    longitude: number;
 }
 
 const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
 
     const mapRef = useRef<MapRef>(null);
     const [showSearchBar, setShowSearchBar] = useState(false);
+    const [routeCoordinates, setRouteCoordinates] = useState<RouteCoordinates[]>([]);
+    const [destination, setDestination] = useState<{ latitude: number; longitude: number; name: string } | null>(null);
 
     // Delay rendering search bar to avoid initialization race condition
     useEffect(() => {
@@ -69,22 +50,75 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
         mapRef.current?.centerOnUser();
     };
 
-    const handlePlaceSelect = (data: any, details: any) => {
-        console.log('Selected place:', data);
-        console.log('Place details:', details);
-        // TODO: Handle the selected place (navigate, add marker, etc.)
+    const getDirections = async (origin: { latitude: number; longitude: number }, destination: { latitude: number; longitude: number }) => {
+        try {
+            const originStr = `${origin.latitude},${origin.longitude}`;
+            const destStr = `${destination.latitude},${destination.longitude}`;
+            const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originStr}&destination=${destStr}&key=${GOOGLE_PLACES_API_KEY}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.status === 'OK' && data.routes.length > 0) {
+                const points = polyline.decode(data.routes[0].overview_polyline.points);
+                const coords = points.map((point: number[]) => ({
+                    latitude: point[0],
+                    longitude: point[1]
+                }));
+                
+                setRouteCoordinates(coords);
+                mapRef.current?.fitToRoute(coords);
+            } else {
+                alert('Could not find a route to this location');
+            }
+        } catch (error) {
+            console.error('Directions API error:', error);
+            alert('Failed to get directions');
+        }
+    };
+
+    const handlePlaceSelect = async (data: any, details: any) => {
+        if (details?.geometry?.location) {
+            const selectedLocation = {
+                latitude: details.geometry.location.lat,
+                longitude: details.geometry.location.lng,
+                name: data.description || 'Selected Location'
+            };
+            
+            setDestination(selectedLocation);
+            
+            // Get user's current location
+            try {
+                const location = await Location.getCurrentPositionAsync({});
+                const userLocation = {
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude
+                };
+                
+                // Get and display route
+                await getDirections(userLocation, selectedLocation);
+            } catch (error) {
+                console.error('Failed to get user location:', error);
+                alert('Could not get your current location');
+            }
+        }
+    };
+
+    const handleCancelRoute = () => {
+        setRouteCoordinates([]);
+        setDestination(null);
+        handleCenter();
     };
 
     return (
         <View style={styles.container}>
             <Header/>
-            <Map ref={mapRef}/>
+            <Map ref={mapRef} routeCoordinates={routeCoordinates} destination={destination}/>
             
             {/* Search Bar */}
             {GOOGLE_PLACES_API_KEY && showSearchBar && (
-                <SearchBarErrorBoundary>
-                    <View style={styles.searchContainer}>
-                        <GooglePlacesAutocomplete
+                <View style={styles.searchContainer}>
+                    <GooglePlacesAutocomplete
                         predefinedPlaces={[]}
                         textInputProps={{}} 
                         placeholder='Search for a place...'
@@ -97,17 +131,6 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
                         enablePoweredByContainer={false}
                         debounce={400}
                         minLength={3}
-                        onFail={(error) => {
-                            console.error('🔴 Google Places API Error:', error);
-                        }}
-                        onNotFound={() => console.log('⚠️ No results found')}
-                        listEmptyComponent={() => (
-                            <View style={{ padding: 10 }}>
-                                <Text>No results</Text>
-                            </View>
-                        )}
-                        keepResultsAfterBlur={true}
-                        suppressDefaultStyles={false}
                         styles={{
                         container: {
                             flex: 0,
@@ -151,12 +174,18 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
                             display: 'none',
                         },
                     }}
-                        />
-                    </View>
-                </SearchBarErrorBoundary>
+                    />
+                </View>
             )}
             
             <CenterButton onPress={handleCenter}/>
+            
+            {/* Cancel Route Button */}
+            {routeCoordinates.length > 0 && (
+                <View style={styles.cancelRouteContainer}>
+                    <Button title="Cancel Route" onPress={handleCancelRoute} color="#ff4444" />
+                </View>
+            )}
             
             {/* Logout button */}
             <View style={styles.logoutContainer}>
@@ -176,6 +205,14 @@ const styles = StyleSheet.create({
         left: 15,
         right: 15,
         zIndex: 5,
+    },
+    cancelRouteContainer: {
+        position: 'absolute',
+        bottom: 20,
+        left: 20,
+        backgroundColor: '#ff4444',
+        borderRadius: 8,
+        overflow: 'hidden',
     },
     logoutContainer: {
         position: 'absolute',

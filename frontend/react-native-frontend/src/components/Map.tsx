@@ -1,6 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
-import MapView, { MapViewProps, Marker } from 'react-native-maps';
+import MapView, { MapViewProps, Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 
 
@@ -13,11 +13,15 @@ type UserLocation = {
 // Type for the ref object exposed via forwardRef
 export type MapRef = {
   centerOnUser: () => void;
+  fitToRoute: (coordinates: { latitude: number; longitude: number }[]) => void;
 };
 
-type MapProps = MapViewProps;
+type MapProps = MapViewProps & {
+  routeCoordinates?: { latitude: number; longitude: number }[];
+  destination?: { latitude: number; longitude: number; name: string } | null;
+};
 
-const Map = forwardRef<MapRef, MapProps>((props, ref) => {
+const Map = forwardRef<MapRef, MapProps>(({ routeCoordinates = [], destination = null, ...props }, ref) => {
   // State for user-added markers
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const mapRef = useRef<MapView>(null);
@@ -62,7 +66,17 @@ const Map = forwardRef<MapRef, MapProps>((props, ref) => {
       }
   };
 
-  useImperativeHandle(ref, () => ({ centerOnUser }));
+  // Fit map to show entire route
+  const fitToRoute = (coordinates: { latitude: number; longitude: number }[]) => {
+      if (coordinates.length > 0 && mapRef.current) {
+          mapRef.current.fitToCoordinates(coordinates, {
+              edgePadding: { top: 100, right: 50, bottom: 100, left: 50 },
+              animated: true,
+          });
+      }
+  };
+
+  useImperativeHandle(ref, () => ({ centerOnUser, fitToRoute }));
 
   return (
     <MapView
@@ -89,6 +103,28 @@ const Map = forwardRef<MapRef, MapProps>((props, ref) => {
                   <View style={styles.userMarkerInner} />
               </View>
           </Marker>
+      )}
+      
+      {/* Route Polyline */}
+      {routeCoordinates.length > 0 && (
+          <Polyline
+              coordinates={routeCoordinates}
+              strokeColor="#4285F4"
+              strokeWidth={4}
+          />
+      )}
+      
+      {/* Destination Marker */}
+      {destination && (
+          <Marker
+              coordinate={{
+                  latitude: destination.latitude,
+                  longitude: destination.longitude,
+              }}
+              title={destination.name}
+              description="Destination"
+              pinColor="red"
+          />
       )}
     </MapView>
   );
