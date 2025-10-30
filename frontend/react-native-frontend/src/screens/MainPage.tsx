@@ -11,7 +11,7 @@ import { RouteProp } from '@react-navigation/native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import InputBottomSheet from '../components/InputBottomSheet';
 
-// Define your navigation stack types
+// Define your navigation stack types 
 type RootStackParamList = {
   MainPage: undefined;
   // Add other screens if needed
