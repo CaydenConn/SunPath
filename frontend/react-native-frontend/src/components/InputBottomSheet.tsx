@@ -16,7 +16,7 @@ const InputBottomSheet: React.FC = () => {
         backgroundStyle={{ backgroundColor: theme.import_bottom.color }}
         >
       <BottomSheetView style={styles.content}>
-        <Text>Hello World</Text>
+        <Text style={{ color: theme.import_bottom.text_color }}>Hello World</Text>
       </BottomSheetView>
     </BottomSheet>
   );

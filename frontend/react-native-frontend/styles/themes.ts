@@ -24,6 +24,7 @@ export const COLORS = {
         // INPUT BOTTOM SHEET
         import_bottom: {
             color: lightBackground,
+            text_color: 'black',
 
             shadowColor: 'black',
             shadowOpacity: 0.35,
@@ -55,6 +56,7 @@ export const COLORS = {
         // INPUT BOTTOM SHEET
         import_bottom: {
             color: darkBackground,
+            text_color: '#fff',
 
             shadowColor: 'black',
             shadowOpacity: 0.35,
