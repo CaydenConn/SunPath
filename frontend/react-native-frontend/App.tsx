@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth'
 import { FIREBASE_AUTH } from './FirebaseConfig'
+import 'react-native-get-random-values';
 
 import Login from './src/screens/Login'
 import MainPage from './src/screens/MainPage'

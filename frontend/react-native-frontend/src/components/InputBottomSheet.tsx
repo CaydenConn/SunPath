@@ -2,8 +2,17 @@ import React, { useMemo } from 'react';
 import { Text, StyleSheet } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useTheme } from '../../styles/ThemeContext';
+import AddressSearchBar from './AddressSearchBar';
+import { MapRef } from "./Map";
 
-const InputBottomSheet: React.FC = () => {
+type InputBottomSheetProps = {
+  userLocation: { latitude: number; longitude: number } | null;
+  onRouteFetched: (coords: { latitude: number; longitude: number }[]) => void;
+  onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
+  mapRef?: React.RefObject<MapRef | null>
+};
+
+const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, mapRef }) => {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   
@@ -16,7 +25,12 @@ const InputBottomSheet: React.FC = () => {
         backgroundStyle={{ backgroundColor: theme.import_bottom.color }}
         >
       <BottomSheetView style={styles.content}>
-        <Text style={{ color: theme.import_bottom.text_color }}>Hello World</Text>
+        <AddressSearchBar
+          userLocation={userLocation}
+          onRouteFetched={onRouteFetched}
+          onDestinationSelected={onDestinationSelected}
+          mapRef={mapRef}
+        />
       </BottomSheetView>
     </BottomSheet>
   );
