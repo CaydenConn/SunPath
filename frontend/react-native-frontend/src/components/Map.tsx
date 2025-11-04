@@ -1,6 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
-import MapView, { MapViewProps, Marker } from 'react-native-maps';
+import MapView, { MapViewProps, Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 
 
@@ -15,9 +15,12 @@ export type MapRef = {
   centerOnUser: () => void;
 };
 
-type MapProps = MapViewProps;
+type MapProps = MapViewProps & {
+  routeCoordinates: { latitude: number; longitude: number }[];
+  destination?: { latitude: number; longitude: number } | null;
+};
 
-const Map = forwardRef<MapRef, MapProps>((props, ref) => {
+const Map = forwardRef<MapRef, MapProps>(({ routeCoordinates = [], destination, ...props }, ref) => {
   // State for user-added markers
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const mapRef = useRef<MapView>(null);
@@ -77,19 +80,8 @@ const Map = forwardRef<MapRef, MapProps>((props, ref) => {
       showsUserLocation={true}
       showsMyLocationButton={false}
     >
-      {/* User Location Marker - Custom marker for your position */}
-      {/* {userLocation && (
-          <Marker
-              coordinate={userLocation}
-              title="You Are Here"
-              description="Your current location"
-              pinColor="green"
-          >
-              <View style={styles.userMarker}>
-                  <View style={styles.userMarkerInner} />
-              </View>
-          </Marker>
-      )} */}
+        {destination && <Marker coordinate={destination} title="Destination"/>}
+        {routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeWidth={4} strokeColor="blue" />}
     </MapView>
   );
 });
