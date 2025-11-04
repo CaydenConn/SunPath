@@ -9,7 +9,7 @@ export default function Header() {
       console.log("Settings Pressed");
   };
 
-  const { theme, toggleTheme } = useTheme();
+  const { theme, colorScheme, toggleTheme } = useTheme();
   const styles = createStyles(theme);
 
   return (
@@ -35,7 +35,14 @@ export default function Header() {
           <View style={styles.color_mode_toggle}>
             <TouchableWithoutFeedback onPress={ toggleTheme }>
                 <View style={styles.color_mode_icon_container}>
-                    <Image style={styles.color_mode_icon} source={require('../../assets/header_sun.png')} />
+                    <Image 
+                    style={styles.color_mode_icon} 
+                    source={
+                      colorScheme === "light" 
+                      ? require('../../assets/header_moon.png')
+                      : require('../../assets/header_sun.png')
+                    }
+                    />
                 </View>
             </TouchableWithoutFeedback>
           </View>

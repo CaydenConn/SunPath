@@ -1,7 +1,9 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
 import MapView, { MapViewProps, Marker, Polyline } from 'react-native-maps';
+import { useTheme } from '../../styles/ThemeContext';
 import * as Location from 'expo-location';
+import { MAP } from '../../styles/themes';
 
 
 // Type for the user location state
@@ -21,35 +23,37 @@ type MapProps = MapViewProps & {
 };
 
 const Map = forwardRef<MapRef, MapProps>(({ routeCoordinates = [], destination, ...props }, ref) => {
-  // State for user-added markers
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const mapRef = useRef<MapView>(null);
+    const { colorScheme } = useTheme();
+  
+    // State for user-added markers
+    const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+    const mapRef = useRef<MapView>(null);
 
   // Get user location on component mount
-  useEffect(() => {
+    useEffect(() => {
       (async () => {
-          try {
-              // Request location permissions
-              let { status } = await Location.requestForegroundPermissionsAsync();
-              if (status !== 'granted') {
-                  Alert.alert('Permission Denied', 'Location permission is required to show your position');
-                  return;
-              }
+            try {
+                // Request location permissions
+                let { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                    Alert.alert('Permission Denied', 'Location permission is required to show your position');
+                    return;
+                }
 
-              // Get current location
-              let location = await Location.getCurrentPositionAsync({});
-              setUserLocation({
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-              });
+                // Get current location
+                let location = await Location.getCurrentPositionAsync({});
+                setUserLocation({
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                });
 
-              console.log('User location:', location.coords);
-          } catch (error) {
-              console.error('Error getting location:', error);
-              Alert.alert('Location Error', 'Could not get your location');
-          }
-      })();
-  }, []);
+                console.log('User location:', location.coords);
+            } catch (error) {
+                console.error('Error getting location:', error);
+                Alert.alert('Location Error', 'Could not get your location');
+            }
+        })();
+    }, []);
 
   // Center map on user location
   const centerOnUser = () => {
@@ -70,6 +74,11 @@ const Map = forwardRef<MapRef, MapProps>(({ routeCoordinates = [], destination, 
   return (
     <MapView
       ref={mapRef}
+      customMapStyle={
+        colorScheme === 'light'
+        ? MAP.light
+        : MAP.dark
+      }
       style={styles.map}
       initialRegion={{
           latitude: 30.4383,
