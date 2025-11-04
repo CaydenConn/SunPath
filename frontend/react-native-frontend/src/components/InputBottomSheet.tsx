@@ -1,35 +1,38 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Text, StyleSheet } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useTheme } from '../../styles/ThemeContext';
 import AddressSearchBar from './AddressSearchBar';
-import { MapRef } from "./Map";
 
 type InputBottomSheetProps = {
   userLocation: { latitude: number; longitude: number } | null;
   onRouteFetched: (coords: { latitude: number; longitude: number }[]) => void;
   onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
-  mapRef?: React.RefObject<MapRef | null>
 };
 
-const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, mapRef }) => {
+const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, }) => {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['40%', '87%'], []);
 
   return (
     <BottomSheet 
-        snapPoints={snapPoints} 
-        style={styles.sheet}
-        backgroundStyle={{ backgroundColor: theme.import_bottom.color }}
-        >
+    ref={bottomSheetRef}
+    snapPoints={snapPoints} 
+    style={styles.sheet}
+    backgroundStyle={{ backgroundColor: theme.import_bottom.color }}
+    >
       <BottomSheetView style={styles.content}>
         <AddressSearchBar
           userLocation={userLocation}
           onRouteFetched={onRouteFetched}
-          onDestinationSelected={onDestinationSelected}
-          mapRef={mapRef}
+          onDestinationSelected={(dest) => {
+            onDestinationSelected?.(dest);
+            bottomSheetRef.current?.snapToIndex(1);
+          }}
+          onFocusExpandSheet={() => bottomSheetRef.current?.expand()}
         />
       </BottomSheetView>
     </BottomSheet>

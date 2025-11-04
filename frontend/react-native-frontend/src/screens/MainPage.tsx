@@ -50,7 +50,7 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
             <Header/>
             <Map ref={mapRef} routeCoordinates={routeCoordinates} destination={destination}/>
             <CenterButton onPress={handleCenter}/>
-            <InputBottomSheet userLocation={userLocation} onRouteFetched={setRouteCoordinates} onDestinationSelected={setDestination} mapRef={mapRef}/>
+            <InputBottomSheet userLocation={userLocation} onRouteFetched={setRouteCoordinates} onDestinationSelected={setDestination}/>
             {/* Logout button */}
             {/* <View style={styles.logoutContainer}>
                 <Button title="Log out" onPress={() => FIREBASE_AUTH.signOut()} />
