@@ -17,27 +17,41 @@ export default function Header() {
   const styles = createStyles(theme);
 
   //WEATHER API
-  const [data,setData] = useState<any>(null)
+  const [currentWeatherData,setCurrentWeatherData] = useState<any>(null)
+  const [forecastData,setForecastData] = useState<any>(null)
 
   useEffect(() => {
     const fetchData = async () => {
-      try {  
-        const cached = await AsyncStorage.getItem('cachedWeatherForecast');
-        const cachedTimestamp = await AsyncStorage.getItem('cachedWeatherForecastTimestamp');
+      try { 
         const now = Date.now();
+        
+        // const cachedCurrentWeather = await AsyncStorage.getItem('cachedCurrentWeather')
+        // const cachedCurrentWeatherTimestamp = await AsyncStorage.getItem('cachedCurrentWeatherTimestamp')
+        // const cachedForecast = await AsyncStorage.getItem('cachedWeatherForecast');
+        // const cachedForecastTimestamp = await AsyncStorage.getItem('cachedWeatherForecastTimestamp');
 
-        if (cached && cachedTimestamp && (now - parseInt(cachedTimestamp) < 3600000) ) {
-          // Cached data is less than 1 hour old
-          setData(JSON.parse(cached));
-          return;
-        }
+        // if (cachedForecast && cachedForecastTimestamp && (now - parseInt(cachedForecastTimestamp) < 3600000) 
+        //     && cachedCurrentWeather && cachedCurrentWeatherTimestamp && (now - parseInt(cachedCurrentWeatherTimestamp) < 3600000) ) {
+        //   // Cached data is less than 1 hour old
+        //   setCurrentWeatherData(JSON.parse(cachedCurrentWeather))
+        //   setForecastData(JSON.parse(cachedForecast))
+        //   return;
+        // }
 
         // If no cached data get new data
-        const response = await axios.get(`${API_BASE_URL}/api/get_user_pos_forecast_weather`)
-        setData(response.data.data.forecast)
+        const [currentWeatherResponse, forecastResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/get_user_pos_current_weather`),
+          axios.get(`${API_BASE_URL}/api/get_user_pos_forecast_weather`)
+        ])
 
-        await AsyncStorage.setItem('cachedWeatherForecast', JSON.stringify(response.data.data.forecast))
+        setCurrentWeatherData(currentWeatherResponse.data.data.current)
+        setForecastData(forecastResponse.data.data.forecast)
+
+        await AsyncStorage.setItem('cachedCurrentWeather', JSON.stringify(currentWeatherResponse.data.data.current))
+        await AsyncStorage.setItem('cachedCurrentWeatherTimestamp', now.toString())
+        await AsyncStorage.setItem('cachedWeatherForecast', JSON.stringify(forecastResponse.data.data.forecast))
         await AsyncStorage.setItem('cachedWeatherForecastTimestamp', now.toString())
+
       } catch(error) {
         console.log("Error: ", error)
       }
@@ -65,20 +79,20 @@ export default function Header() {
             </TouchableWithoutFeedback>
 
             {/* Weather Data */}
-            { data 
+            { (currentWeatherData && forecastData) 
               ? (
                 <View style={styles.weather_box}>
                   <View style={styles.forecast_data}>
                     <Text>Now</Text>
-                    <Text>{data?.forecast_hour_2?.temp_f}°F</Text>
+                    <Text>{currentWeatherData?.temp_f}°F</Text>
                   </View>
                   <View>
                     <Text>1 Hour</Text>
-                    <Text>{data?.forecast_hour_2?.temp_f}°F</Text>
+                    <Text>{forecastData?.forecast_hour_1?.temp_f}°F</Text>
                   </View>
                   <View>
                     <Text>3 Hour</Text>
-                    <Text>{data?.forecast_hour_2?.temp_f}°F</Text>
+                    <Text>{forecastData?.forecast_hour_3?.temp_f}°F</Text>
                   </View>
                 </View>
               ) : ( 
