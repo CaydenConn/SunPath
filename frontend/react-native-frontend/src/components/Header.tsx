@@ -25,18 +25,18 @@ export default function Header() {
       try { 
         const now = Date.now();
         
-        // const cachedCurrentWeather = await AsyncStorage.getItem('cachedCurrentWeather')
-        // const cachedCurrentWeatherTimestamp = await AsyncStorage.getItem('cachedCurrentWeatherTimestamp')
-        // const cachedForecast = await AsyncStorage.getItem('cachedWeatherForecast');
-        // const cachedForecastTimestamp = await AsyncStorage.getItem('cachedWeatherForecastTimestamp');
+        const cachedCurrentWeather = await AsyncStorage.getItem('cachedCurrentWeather')
+        const cachedCurrentWeatherTimestamp = await AsyncStorage.getItem('cachedCurrentWeatherTimestamp')
+        const cachedForecast = await AsyncStorage.getItem('cachedWeatherForecast');
+        const cachedForecastTimestamp = await AsyncStorage.getItem('cachedWeatherForecastTimestamp');
 
-        // if (cachedForecast && cachedForecastTimestamp && (now - parseInt(cachedForecastTimestamp) < 3600000) 
-        //     && cachedCurrentWeather && cachedCurrentWeatherTimestamp && (now - parseInt(cachedCurrentWeatherTimestamp) < 3600000) ) {
-        //   // Cached data is less than 1 hour old
-        //   setCurrentWeatherData(JSON.parse(cachedCurrentWeather))
-        //   setForecastData(JSON.parse(cachedForecast))
-        //   return;
-        // }
+        if (cachedForecast && cachedForecastTimestamp && (now - parseInt(cachedForecastTimestamp) < 3600000) 
+            && cachedCurrentWeather && cachedCurrentWeatherTimestamp && (now - parseInt(cachedCurrentWeatherTimestamp) < 3600000) ) {
+          // Cached data is less than 1 hour old
+          setCurrentWeatherData(JSON.parse(cachedCurrentWeather))
+          setForecastData(JSON.parse(cachedForecast))
+          return;
+        }
 
         // If no cached data get new data
         const [currentWeatherResponse, forecastResponse] = await Promise.all([
