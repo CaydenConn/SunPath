@@ -29,7 +29,11 @@ def home():
 
 @app.route('/api/get_user_pos_current_weather', methods=['GET'])
 def get_user_pos_current_weather():
-    lat_lon = request.args.get('lat_lon', '30.4383,-84.2807')  # Tallahassee coordinates
+    lat_lon = request.args.get('lat_lon')
+    
+    if not lat_lon:
+        return jsonify({"error": "User coordinates not provided"}), 400
+    
     weather_api_call = build_weather_api_call(lat_lon, 'current')
     response = requests.get(weather_api_call)
     data = response.json()
@@ -38,7 +42,11 @@ def get_user_pos_current_weather():
 
 @app.route('/api/get_user_pos_forecast_weather', methods=['GET'])
 def get_user_pos_forecast_weather():
-    lat_lon = request.args.get('lat_lon', '30.4383,-84.2807')
+    lat_lon = request.args.get('lat_lon')
+    
+    if not lat_lon:
+        return jsonify({"error": "User coordinates not provided"}), 400
+    
     hours = int(request.args.get('hours', 3))  # Default to 3 hours
     
     # Request 2 days to ensure we have enough hourly data
