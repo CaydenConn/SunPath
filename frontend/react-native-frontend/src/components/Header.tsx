@@ -1,6 +1,10 @@
 import { StyleSheet, Text, TouchableWithoutFeedback, View, Image, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../styles/ThemeContext';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { API_BASE_URL } from '@env';
 
 export default function Header() {
   const insets = useSafeAreaInsets();
@@ -11,6 +15,54 @@ export default function Header() {
 
   const { theme, colorScheme, toggleTheme } = useTheme();
   const styles = createStyles(theme);
+
+  //WEATHER API
+  const [currentWeatherData,setCurrentWeatherData] = useState<any>(null)
+  const [forecastData,setForecastData] = useState<any>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try { 
+        const now = Date.now();
+        
+        const cachedCurrentWeather = await AsyncStorage.getItem('cachedCurrentWeather')
+        const cachedCurrentWeatherTimestamp = await AsyncStorage.getItem('cachedCurrentWeatherTimestamp')
+        const cachedForecast = await AsyncStorage.getItem('cachedWeatherForecast');
+        const cachedForecastTimestamp = await AsyncStorage.getItem('cachedWeatherForecastTimestamp');
+
+        if (cachedForecast && cachedForecastTimestamp && (now - parseInt(cachedForecastTimestamp) < 3600000) 
+            && cachedCurrentWeather && cachedCurrentWeatherTimestamp && (now - parseInt(cachedCurrentWeatherTimestamp) < 3600000) ) {
+          // Cached data is less than 1 hour old
+          setCurrentWeatherData(JSON.parse(cachedCurrentWeather))
+          setForecastData(JSON.parse(cachedForecast))
+          return;
+        }
+
+        // If no cached data get new data
+        const [currentWeatherResponse, forecastResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/get_user_pos_current_weather`),
+          axios.get(`${API_BASE_URL}/api/get_user_pos_forecast_weather`)
+        ])
+
+        setCurrentWeatherData(currentWeatherResponse.data.data.current)
+        setForecastData(forecastResponse.data.data.forecast)
+
+        await AsyncStorage.setItem('cachedCurrentWeather', JSON.stringify(currentWeatherResponse.data.data.current))
+        await AsyncStorage.setItem('cachedCurrentWeatherTimestamp', now.toString())
+        await AsyncStorage.setItem('cachedWeatherForecast', JSON.stringify(forecastResponse.data.data.forecast))
+        await AsyncStorage.setItem('cachedWeatherForecastTimestamp', now.toString())
+
+      } catch(error) {
+        console.log("Error: ", error)
+      }
+    }
+
+    // Call on component load
+    fetchData()
+    // Call every hour
+    const interval = setInterval(fetchData, 3600000)
+    return () => clearInterval(interval);
+  }, [])
 
   return (
       <View style={[styles.top_holder, {
@@ -27,9 +79,29 @@ export default function Header() {
             </TouchableWithoutFeedback>
 
             {/* Weather Data */}
-            <View style={styles.weather_box}>
-                <Text>Weather Data</Text>
-            </View>
+            { (currentWeatherData && forecastData) 
+              ? (
+                <View style={styles.weather_box}>
+                  <View style={styles.forecast_data}>
+                    <Text>Now</Text>
+                    <Text>{currentWeatherData?.temp_f}°F</Text>
+                  </View>
+                  <View>
+                    <Text>1 Hour</Text>
+                    <Text>{forecastData?.forecast_hour_1?.temp_f}°F</Text>
+                  </View>
+                  <View>
+                    <Text>3 Hour</Text>
+                    <Text>{forecastData?.forecast_hour_3?.temp_f}°F</Text>
+                  </View>
+                </View>
+              ) : ( 
+                <View style={styles.weather_box}>
+                  <Text>Weather Data Unavailable</Text>
+                </View> 
+              )
+            }
+        
           </View>
 
           <View style={styles.color_mode_toggle}>
@@ -83,13 +155,21 @@ const createStyles = (theme : any) =>
     },
     weather_box: {
       flex: 1,
+      flexDirection: 'row',
       borderRadius: theme.header.borderRadius,
       padding: 10,
       marginLeft: theme.header.margin,
       marginRight: theme.header.margin,
       backgroundColor: theme.header.color,
       height: theme.header.height,
-      justifyContent: 'center',
+      justifyContent: 'space-evenly',
+      alignItems: 'center',
+      // borderColor: 'red',
+      // borderWidth: 1,
+    },
+    forecast_data: {
+      // borderColor: 'red',
+      // borderWidth: 1,
     },
     color_mode_toggle: {
       alignSelf: 'flex-end',
