@@ -74,7 +74,12 @@ export default function Header() {
             {/* Settings Icon */}
             <TouchableWithoutFeedback onPress={ handleSettingsPress }>
                 <View style={styles.settings_icon_container}>
-                    <Image style={styles.settings_icon} source={require('../../assets/settings.png')} />
+                    { 
+                      colorScheme === 'light'
+                      ? <Image style={styles.settings_icon} source={require('../../assets/settings.png')} />
+                      : <Image style={styles.settings_icon} source={require('../../assets/settings_white.png')} />
+                    }
+                    
                 </View>
             </TouchableWithoutFeedback>
 
@@ -83,16 +88,16 @@ export default function Header() {
               ? (
                 <View style={styles.weather_box}>
                   <View style={styles.forecast_data}>
-                    <Text>Now</Text>
-                    <Text>{currentWeatherData?.temp_f}°F</Text>
+                    <Text style={styles.forecast_data_text}>Now</Text>
+                    <Text style={styles.forecast_data_text}>{currentWeatherData?.temp_f}°F</Text>
                   </View>
-                  <View>
-                    <Text>1 Hour</Text>
-                    <Text>{forecastData?.forecast_hour_1?.temp_f}°F</Text>
+                  <View style={styles.forecast_data}>
+                    <Text style={styles.forecast_data_text}>1 Hr</Text>
+                    <Text style={styles.forecast_data_text}>{forecastData?.forecast_hour_1?.temp_f}°F</Text>
                   </View>
-                  <View>
-                    <Text>3 Hour</Text>
-                    <Text>{forecastData?.forecast_hour_3?.temp_f}°F</Text>
+                  <View style={styles.forecast_data}>
+                    <Text style={styles.forecast_data_text}>3 Hr</Text>
+                    <Text style={styles.forecast_data_text}>{forecastData?.forecast_hour_3?.temp_f}°F</Text>
                   </View>
                 </View>
               ) : ( 
@@ -101,9 +106,9 @@ export default function Header() {
                 </View> 
               )
             }
-        
+            
           </View>
-
+            
           <View style={styles.color_mode_toggle}>
             <TouchableWithoutFeedback onPress={ toggleTheme }>
                 <View style={styles.color_mode_icon_container}>
@@ -111,8 +116,8 @@ export default function Header() {
                     style={styles.color_mode_icon} 
                     source={
                       colorScheme === "light" 
-                      ? require('../../assets/header_moon.png')
-                      : require('../../assets/header_sun.png')
+                      ? require('../../assets/header_sun.png')
+                      : require('../../assets/header_moon.png')
                     }
                     />
                 </View>
@@ -136,12 +141,13 @@ const createStyles = (theme : any) =>
       shadowOpacity: theme.header.shadowOpacity,
       shadowRadius: theme.header.shadowRadius,
       shadowOffset: theme.header.shadowOffset,
+      elevation: theme.header.elevation,
     },
     settings_weather_container: {
       flexDirection: 'row',
       },
     settings_icon_container: {
-      backgroundColor: theme.header.color,
+      backgroundColor: theme.color,
       height: theme.header.height,
       width: theme.header.height,
       borderRadius: theme.header.borderRadius,
@@ -160,7 +166,7 @@ const createStyles = (theme : any) =>
       padding: 10,
       marginLeft: theme.header.margin,
       marginRight: theme.header.margin,
-      backgroundColor: theme.header.color,
+      backgroundColor: theme.color,
       height: theme.header.height,
       justifyContent: 'space-evenly',
       alignItems: 'center',
@@ -168,8 +174,12 @@ const createStyles = (theme : any) =>
       // borderWidth: 1,
     },
     forecast_data: {
-      // borderColor: 'red',
-      // borderWidth: 1,
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center'
+    },
+    forecast_data_text: {
+      color: theme.textColor,
     },
     color_mode_toggle: {
       alignSelf: 'flex-end',
@@ -177,7 +187,7 @@ const createStyles = (theme : any) =>
       marginTop: theme.header.margin,
     },
     color_mode_icon_container: {
-      backgroundColor: theme.header.color,
+      backgroundColor: theme.color,
       borderRadius: theme.header.borderRadius,
       alignItems: 'center',
       justifyContent: 'center',

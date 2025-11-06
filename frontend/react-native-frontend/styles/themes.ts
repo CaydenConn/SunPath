@@ -1,17 +1,23 @@
 const lightBackground = "#fff";
 const darkBackground = "#020618";
 
+const lightTextColor = 'black'
+const darkTextColor = 'white'
+
 // GLOBAL COLORS
 export const COLORS = {
     
     light: {
+        color: lightBackground,
+        textColor: lightTextColor,
         // HEADER
         header: {
             height: 60,
             padding: 7.5,
             borderRadius: 10,
             margin: 7,
-            color: lightBackground,
+            
+
 
             shadowColor: 'black',
             shadowOpacity: 0.35,
@@ -20,12 +26,10 @@ export const COLORS = {
                 width: 0,
                 height: 4
             },
+            elevation: 6,
         },
         // INPUT BOTTOM SHEET
         import_bottom: {
-            color: lightBackground,
-            text_color: 'black',
-
             shadowColor: 'black',
             shadowOpacity: 0.35,
             shadowRadius: 5,
@@ -34,16 +38,30 @@ export const COLORS = {
                 height: -4
             },
         },
+        //CENTER ON USER BUTTON
+        center_on_button: {
+            shadowColor: 'black',
+            shadowOpacity: 0.35,
+            shadowRadius: 5,
+            shadowOffset: {
+                width: 0,
+                height: 4
+            },
+            elevation: 5,
+        }
     },
 
     dark: {
+        color: darkBackground,
+        textColor: darkTextColor,
         // HEADER
         header: {
             height: 60,
             padding: 7.5,
             borderRadius: 10,
             margin: 7,
-            color: darkBackground,
+
+
 
             shadowColor: 'black',
             shadowOpacity: 0.35,
@@ -52,12 +70,10 @@ export const COLORS = {
                 width: 0,
                 height: 4
             },
+            elevation: 5,
         },
         // INPUT BOTTOM SHEET
         import_bottom: {
-            color: darkBackground,
-            text_color: '#fff',
-
             shadowColor: 'black',
             shadowOpacity: 0.35,
             shadowRadius: 5,
@@ -66,6 +82,17 @@ export const COLORS = {
                 height: -4
             },
         },
+        //CENTER ON USER BUTTON
+        center_on_button: {
+            shadowColor: 'black',
+            shadowOpacity: 0.35,
+            shadowRadius: 5,
+            shadowOffset: {
+                width: 0,
+                height: 4
+            },
+            elevation: 5,
+        }
     }
 
 }
