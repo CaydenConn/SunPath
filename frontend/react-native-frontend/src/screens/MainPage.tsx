@@ -47,7 +47,7 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <Header/>
+            <Header userLocation={userLocation}/>
             <Map ref={mapRef} routeCoordinates={routeCoordinates} destination={destination}/>
             <CenterButton onPress={handleCenter}/>
             <InputBottomSheet userLocation={userLocation} onRouteFetched={setRouteCoordinates} onDestinationSelected={setDestination}/>

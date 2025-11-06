@@ -8,13 +8,16 @@ import { API_BASE_URL } from '@env';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+type HeaderProps = {
+  userLocation: { latitude: number; longitude: number } | null;
+}
 type RootStackParam = {
   Login: undefined;
   Inside: undefined;
 };
 type NavigationProp = NativeStackNavigationProp<RootStackParam>;
 
-export default function Header() {
+export default function Header({ userLocation }: HeaderProps) {
   const insets = useSafeAreaInsets();
 
   const navigation = useNavigation<NavigationProp>();
@@ -31,6 +34,9 @@ export default function Header() {
   const [forecastData,setForecastData] = useState<any>(null)
 
   useEffect(() => {
+    
+    if (!userLocation) return;
+
     const fetchData = async () => {
       try { 
         const now = Date.now();
@@ -50,17 +56,21 @@ export default function Header() {
 
         // If no cached data get new data
         const [currentWeatherResponse, forecastResponse] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/get_user_pos_current_weather`),
-          axios.get(`${API_BASE_URL}/api/get_user_pos_forecast_weather`)
+          axios.get(`${API_BASE_URL}/api/get_user_pos_current_weather?lat_lon=${userLocation?.latitude},${userLocation?.longitude}`),
+          axios.get(`${API_BASE_URL}/api/get_user_pos_forecast_weather?lat_lon=${userLocation?.latitude},${userLocation?.longitude}`)
         ])
 
         setCurrentWeatherData(currentWeatherResponse.data.data.current)
         setForecastData(forecastResponse.data.data.forecast)
 
-        await AsyncStorage.setItem('cachedCurrentWeather', JSON.stringify(currentWeatherResponse.data.data.current))
-        await AsyncStorage.setItem('cachedCurrentWeatherTimestamp', now.toString())
-        await AsyncStorage.setItem('cachedWeatherForecast', JSON.stringify(forecastResponse.data.data.forecast))
-        await AsyncStorage.setItem('cachedWeatherForecastTimestamp', now.toString())
+        if (currentWeatherResponse.data.data.current) {
+          await AsyncStorage.setItem('cachedCurrentWeather', JSON.stringify(currentWeatherResponse.data.data.current));
+          await AsyncStorage.setItem('cachedCurrentWeatherTimestamp', now.toString());
+        }
+        if (forecastResponse.data.data.forecast) {
+          await AsyncStorage.setItem('cachedWeatherForecast', JSON.stringify(forecastResponse.data.data.forecast));
+          await AsyncStorage.setItem('cachedWeatherForecastTimestamp', now.toString());
+        }
 
       } catch(error) {
         console.log("Error: ", error)
@@ -72,7 +82,7 @@ export default function Header() {
     // Call every hour
     const interval = setInterval(fetchData, 3600000)
     return () => clearInterval(interval);
-  }, [])
+  }, [userLocation])
 
   return (
       <View style={[styles.top_holder, {
