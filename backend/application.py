@@ -100,6 +100,64 @@ def get_user_pos_forecast_weather():
     # Fallback to original response if structure is unexpected
     return jsonify({"data": data})
 
+@app.route('/api/generate_route', methods=['POST'])
+def generate_route():
+    """
+    Generate a route from origin to destination using Google Directions API
+    Request body: { origin_lat, origin_lon, destination_lat, destination_lon }
+    Returns decoded polyline coordinates ready for map display
+    """
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({"error": "Request body is required"}), 400
+    
+    origin_lat = data.get('origin_lat')
+    origin_lon = data.get('origin_lon')
+    destination_lat = data.get('destination_lat')
+    destination_lon = data.get('destination_lon')
+    
+    # Validate all parameters are provided
+    if not all([origin_lat, origin_lon, destination_lat, destination_lon]):
+        return jsonify({"error": "Missing required parameters: origin_lat, origin_lon, destination_lat, destination_lon"}), 400
+    
+    try:
+        # Build Google Directions API request
+        origin_str = f"{origin_lat},{origin_lon}"
+        dest_str = f"{destination_lat},{destination_lon}"
+        url = f"https://maps.googleapis.com/maps/api/directions/json?origin={origin_str}&destination={dest_str}&key={app.config['GOOGLE_MAPS_API_KEY']}"
+        
+        # Call Google Directions API
+        response = requests.get(url)
+        data = response.json()
+        
+        if data.get('status') == 'OK' and data.get('routes'):
+            route = data['routes'][0]
+            
+            # Return route data with decoded polyline
+            return jsonify({
+                "status": "success",
+                "route": {
+                    "overview_polyline": route['overview_polyline']['points'],
+                    "bounds": route.get('bounds'),
+                    "distance": route['legs'][0].get('distance'),
+                    "duration": route['legs'][0].get('duration'),
+                    "start_location": route['legs'][0]['start_location'],
+                    "end_location": route['legs'][0]['end_location'],
+                    "start_address": route['legs'][0].get('start_address'),
+                    "end_address": route['legs'][0].get('end_address')
+                }
+            }), 200
+        else:
+            return jsonify({
+                "error": "Route not found",
+                "status": data.get('status'),
+                "message": data.get('error_message', 'Could not calculate route')
+            }), 404
+            
+    except Exception as e:
+        return jsonify({"error": "Failed to generate route", "details": str(e)}), 500
+
 @app.route('/api/data', methods=['POST'])
 def post_data():
     data = request.get_json()
