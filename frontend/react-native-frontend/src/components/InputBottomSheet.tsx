@@ -22,7 +22,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
     ref={bottomSheetRef}
     snapPoints={snapPoints} 
     style={styles.sheet}
-    backgroundStyle={{ backgroundColor: theme.import_bottom.color }}
+    backgroundStyle={{ backgroundColor: theme.color }}
     >
       <BottomSheetView style={styles.content}>
         <AddressSearchBar
