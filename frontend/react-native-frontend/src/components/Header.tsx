@@ -5,12 +5,22 @@ import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { API_BASE_URL } from '@env';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type RootStackParam = {
+  Login: undefined;
+  Inside: undefined;
+};
+type NavigationProp = NativeStackNavigationProp<RootStackParam>;
 
 export default function Header() {
   const insets = useSafeAreaInsets();
 
+  const navigation = useNavigation<NavigationProp>();
   const handleSettingsPress = (): void => {
       console.log("Settings Pressed");
+      // navigation.navigate('Login');
   };
 
   const { theme, colorScheme, toggleTheme } = useTheme();

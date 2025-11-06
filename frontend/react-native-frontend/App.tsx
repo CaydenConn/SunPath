@@ -45,11 +45,11 @@ export default function App() {
     <ThemeProvider>
       <GestureHandlerRootView>
         <NavigationContainer>
-          <Stack.Navigator initialRouteName='Inside'>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
             {user ? (
-              <Stack.Screen name='Login' component={Login} options={{ headerShown: false }}/>
-            ) : (
               <Stack.Screen name='Inside' component={InsideLayout} options={{ headerShown: false }}/>
+            ) : (
+              <Stack.Screen name='Login' component={Login} options={{ headerShown: false }}/>
             )}
           </Stack.Navigator>
         </NavigationContainer>

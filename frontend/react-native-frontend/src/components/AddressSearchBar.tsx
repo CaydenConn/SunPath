@@ -4,6 +4,7 @@ import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from "react-nat
 import { GOOGLE_PLACES_API_KEY } from "@env";
 import polyline from "@mapbox/polyline";
 
+
 type AddressSearchBarProps = {
     userLocation: { latitude: number; longitude: number } | null;
     onRouteFetched: (coords: { latitude: number; longitude: number }[]) => void;
@@ -56,57 +57,57 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
 
     return (
         <View style={styles.container}>
-        <GooglePlacesAutocomplete
-            ref={placesRef}
-            placeholder="Search"
-            onPress={handlePlaceSelect}
-            query={{ key: GOOGLE_PLACES_API_KEY, language: "en" }}
-            fetchDetails={true}
-            enablePoweredByContainer={false}
-            debounce={400}
-            minLength={3}
-            styles={{
-            textInput: styles.textInput,
-            listView: styles.listView,
-            row: styles.row,
-            separator: styles.separator,
-            description: styles.description,
-            }}
+            <GooglePlacesAutocomplete
+                ref={placesRef}
+                placeholder="Search"
+                onPress={handlePlaceSelect}
+                query={{ key: GOOGLE_PLACES_API_KEY, language: "en" }}
+                fetchDetails={true}
+                enablePoweredByContainer={false}
+                debounce={400}
+                minLength={3}
+                styles={{
+                textInput: styles.textInput,
+                listView: styles.listView,
+                row: styles.row,
+                separator: styles.separator,
+                description: styles.description,
+                }}
 
-            autoFillOnNotFound={false}
-            currentLocation={false}
-            currentLocationLabel="Current location"
-            disableScroll={false}
-            enableHighAccuracyLocation={true}
-            filterReverseGeocodingByTypes={[]}
-            GooglePlacesDetailsQuery={{}}
-            GooglePlacesSearchQuery={{
-            rankby: 'distance',
-            type: 'restaurant',
-            }}
-            GoogleReverseGeocodingQuery={{}}
-            isRowScrollable={true}
-            keyboardShouldPersistTaps="always"
-            listUnderlayColor="#c8c7cc"
-            listViewDisplayed="auto"
-            keepResultsAfterBlur={false}
-            nearbyPlacesAPI="GooglePlacesSearch"
-            numberOfLines={1}
-            onFail={() => {}}
-            onNotFound={() => {}}
-            onTimeout={() =>
-            console.warn('google places autocomplete: request timeout')
-            }
-            predefinedPlaces={[]}
-            predefinedPlacesAlwaysVisible={false}
-            suppressDefaultStyles={false}
-            textInputHide={false}
-            textInputProps={{
-                onFocus: onFocusExpandSheet,
-                blurOnSubmit: true,
-            }}
-            timeout={20000}
-        />
+                autoFillOnNotFound={false}
+                currentLocation={false}
+                currentLocationLabel="Current location"
+                disableScroll={false}
+                enableHighAccuracyLocation={true}
+                filterReverseGeocodingByTypes={[]}
+                GooglePlacesDetailsQuery={{}}
+                GooglePlacesSearchQuery={{
+                rankby: 'distance',
+                type: 'restaurant',
+                }}
+                GoogleReverseGeocodingQuery={{}}
+                isRowScrollable={true}
+                keyboardShouldPersistTaps="always"
+                listUnderlayColor="#c8c7cc"
+                listViewDisplayed="auto"
+                keepResultsAfterBlur={false}
+                nearbyPlacesAPI="GooglePlacesSearch"
+                numberOfLines={1}
+                onFail={() => {}}
+                onNotFound={() => {}}
+                onTimeout={() =>
+                console.warn('google places autocomplete: request timeout')
+                }
+                predefinedPlaces={[]}
+                predefinedPlacesAlwaysVisible={false}
+                suppressDefaultStyles={false}
+                textInputHide={false}
+                textInputProps={{
+                    onFocus: onFocusExpandSheet,
+                    blurOnSubmit: true,
+                }}
+                timeout={20000}
+            />
         </View>
     );
 };
