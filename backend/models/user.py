@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, asdict, field
 
 @dataclass
@@ -126,3 +126,24 @@ class User:
         self.recent_addresses = []
         self.updated_at = datetime.utcnow().isoformat()
 
+@dataclass
+class RecentDestination:
+    label: str
+    address: str
+    lat: float
+    lng: float
+    place_id: Optional[str] = None
+    last_used: float = field(default_factory=lambda: datetime.now(timezone.utc).timestamp())
+
+def upsert_recent_destination(existing: List[Dict[str, Any]],
+                              new_item: "RecentDestination",
+                              max_items: int = 10) -> List[Dict[str, Any]]:
+    """Insert/refresh a recent destination, dedupe by place_id or lat/lng, cap length."""
+    def same(a: Dict[str, Any]) -> bool:
+        if new_item.place_id and a.get("place_id"):
+            return a["place_id"] == new_item.place_id
+        return abs(a.get("lat", 0) - new_item.lat) < 1e-6 and abs(a.get("lng", 0) - new_item.lng) < 1e-6
+
+    filtered = [a for a in (existing or []) if not same(a)]
+    filtered.insert(0, asdict(new_item))
+    return filtered[:max_items]

@@ -11,3 +11,7 @@ frontend/web-build/
 
 .env
 *.log
+# env files
+.env
+frontend/react-native-frontend/.env
+backend/.env
