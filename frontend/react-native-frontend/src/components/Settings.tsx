@@ -1,133 +1,163 @@
 import React, { useCallback } from 'react';
 import {
-  View,
-  Text,
-  Switch,
-  Pressable,
-  StyleSheet,
-  ScrollView,
-  ViewStyle,
-  ColorSchemeName,
+  View, Text, ScrollView, StyleSheet, Pressable, Switch, Image, ViewStyle
 } from 'react-native';
 
 export type ThemeOption = 'system' | 'light' | 'dark';
 export type UnitsOption = 'metric' | 'imperial';
+export type MapTypeOption = 'standard' | 'satellite' | 'terrain';
+export type RoutePreference = 'fastest' | 'shortest' | 'scenic';
 
 export interface SettingsValues {
   theme: ThemeOption;
   units: UnitsOption;
+  mapType: MapTypeOption;
+  routePreference: RoutePreference;
+  voiceGuidance: boolean;
+  avoidTolls: boolean;
+  avoidHighways: boolean;
   notifications: {
     dailySummary: boolean;
     severeAlerts: boolean;
   };
 }
 
+export interface ProfileInfo {
+  displayName?: string | null;
+  email?: string | null;
+  photoURL?: string | null;
+}
+
 export interface SettingsProps {
   values: SettingsValues;
+  profile?: ProfileInfo;
   onChange: (patch: Partial<SettingsValues>) => void;
+  onChangeNested?: (ns: 'notifications', patch: Partial<SettingsValues['notifications']>) => void;
+  onEditProfile?: () => void;
+  onChangePhoto?: () => void;
+  onResetPassword?: () => void;
+  onSignOut?: () => void;
+  onAbout?: () => void;
   onOpenSystemSettings?: () => void;
-  onAboutPress?: () => void;
   contentContainerStyle?: ViewStyle;
-  colorScheme?: ColorSchemeName; // optional hint for styling
 }
 
 const SECTION_SPACING = 16;
 
 const Settings: React.FC<SettingsProps> = ({
   values,
+  profile,
   onChange,
+  onChangeNested,
+  onEditProfile,
+  onChangePhoto,
+  onResetPassword,
+  onSignOut,
+  onAbout,
   onOpenSystemSettings,
-  onAboutPress,
   contentContainerStyle,
 }) => {
-  const setTheme = useCallback(
-    (theme: ThemeOption) => onChange({ theme }),
+  const set = useCallback(
+    (k: keyof SettingsValues, v: any) => onChange({ [k]: v } as Partial<SettingsValues>),
     [onChange]
   );
-
-  const setUnits = useCallback(
-    (units: UnitsOption) => onChange({ units }),
-    [onChange]
-  );
-
-  const setNotification = useCallback(
-    (key: keyof SettingsValues['notifications'], val: boolean) => {
-      onChange({
-        notifications: {
-          ...values.notifications,
-          [key]: val,
-        },
-      });
-    },
-    [onChange, values.notifications]
+  const setNotif = useCallback(
+    (k: keyof SettingsValues['notifications'], v: boolean) =>
+      onChangeNested?.('notifications', { [k]: v }),
+    [onChangeNested]
   );
 
   return (
-    <ScrollView
-      contentContainerStyle={[styles.container, contentContainerStyle]}
-      bounces
-    >
+    <ScrollView contentContainerStyle={[styles.container, contentContainerStyle]}>
+      <Section title="Profile">
+        <View style={styles.profileRow}>
+          {profile?.photoURL ? (
+            <Image source={{ uri: profile.photoURL }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarInitials}>{initials(profile?.displayName || profile?.email)}</Text>
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{profile?.displayName || 'User'}</Text>
+            {!!profile?.email && <Text style={styles.email}>{profile.email}</Text>}
+          </View>
+        </View>
+        <RowButtons>
+          <MiniButton label="Edit profile" onPress={onEditProfile} />
+          <MiniButton label="Change photo" onPress={onChangePhoto} />
+          <MiniButton label="Reset password" onPress={onResetPassword} />
+        </RowButtons>
+      </Section>
+
       <Section title="Appearance">
-        <Row title="Theme" subtitle="System, Light, or Dark" noRightPadding>
+        <Row title="Theme" noRightPadding>
           <Segmented
-            options={[
-              { key: 'system', label: 'System' },
-              { key: 'light', label: 'Light' },
-              { key: 'dark', label: 'Dark' },
-            ]}
+            options={[{ k: 'system', l: 'System' }, { k: 'light', l: 'Light' }, { k: 'dark', l: 'Dark' }]}
             value={values.theme}
-            onChange={(v) => setTheme(v as ThemeOption)}
+            onChange={(v) => set('theme', v)}
           />
         </Row>
       </Section>
 
       <Section title="Units">
-        <Row title="Measurement Units" subtitle="Metric (°C, m/s) or Imperial (°F, mph)" noRightPadding>
+        <Row title="Measurement Units" noRightPadding>
           <Segmented
-            options={[
-              { key: 'metric', label: 'Metric' },
-              { key: 'imperial', label: 'Imperial' },
-            ]}
+            options={[{ k: 'metric', l: 'Metric' }, { k: 'imperial', l: 'Imperial' }]}
             value={values.units}
-            onChange={(v) => setUnits(v as UnitsOption)}
+            onChange={(v) => set('units', v)}
           />
         </Row>
       </Section>
 
-      <Section title="Notifications">
-        <Row
-          title="Daily summary"
-          subtitle="Receive a daily overview"
-          right={
-            <Switch
-              value={values.notifications.dailySummary}
-              onValueChange={(v) => setNotification('dailySummary', v)}
-            />
-          }
-        />
+      <Section title="Navigation">
+        <Row title="Map type" noRightPadding>
+          <Segmented
+            options={[
+              { k: 'standard', l: 'Standard' },
+              { k: 'satellite', l: 'Satellite' },
+              { k: 'terrain', l: 'Terrain' },
+            ]}
+            value={values.mapType}
+            onChange={(v) => set('mapType', v)}
+          />
+        </Row>
+        <Row title="Route preference" noRightPadding>
+          <Segmented
+            options={[
+              { k: 'fastest', l: 'Fastest' },
+              { k: 'shortest', l: 'Shortest' },
+              { k: 'scenic', l: 'Scenic' },
+            ]}
+            value={values.routePreference}
+            onChange={(v) => set('routePreference', v)}
+          />
+        </Row>
+        <SwitchRow title="Voice guidance" value={values.voiceGuidance} onValueChange={(v) => set('voiceGuidance', v)} />
+        <SwitchRow title="Avoid tolls" value={values.avoidTolls} onValueChange={(v) => set('avoidTolls', v)} />
+        <SwitchRow title="Avoid highways" value={values.avoidHighways} onValueChange={(v) => set('avoidHighways', v)} />
+      </Section>
 
-        <Row
-          title="Severe weather alerts"
-          subtitle="Get alerted about severe conditions"
-          right={
-            <Switch
-              value={values.notifications.severeAlerts}
-              onValueChange={(v) => setNotification('severeAlerts', v)}
-            />
-          }
+      <Section title="Notifications">
+        <SwitchRow
+          title="Daily summary"
+          value={values.notifications.dailySummary}
+          onValueChange={(v) => setNotif('dailySummary', v)}
+        />
+        <SwitchRow
+          title="Severe alerts"
+          value={values.notifications.severeAlerts}
+          onValueChange={(v) => setNotif('severeAlerts', v)}
         />
       </Section>
 
-      <Section title="About">
-        <Pressable style={styles.linkRow} onPress={onAboutPress}>
-          <Text style={styles.linkTitle}>About SunPath</Text>
-          <Text style={styles.linkSubtitle}>Version, licenses, and credits</Text>
-        </Pressable>
+      <Section title="About / System">
+        <ActionRow label="About SunPath" onPress={onAbout} />
+        <ActionRow label="Open system settings" onPress={onOpenSystemSettings} />
+      </Section>
 
-        <Pressable style={styles.linkRow} onPress={onOpenSystemSettings}>
-          <Text style={styles.linkTitle}>Open system settings</Text>
-          <Text style={styles.linkSubtitle}>Manage app permissions</Text>
-        </Pressable>
+      <Section title="Account actions">
+        <ActionRow label="Sign out" danger onPress={onSignOut} />
       </Section>
 
       <View style={{ height: SECTION_SPACING }} />
@@ -135,172 +165,141 @@ const Settings: React.FC<SettingsProps> = ({
   );
 };
 
-/**
- - Small building blocks kept in this file for simplicity.
- - You can extract them later if you want finer reuse/testing.
-*/
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.card}>{children}</View>
+  </View>
+);
 
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
+const Row: React.FC<{ title: string; children?: React.ReactNode; noRightPadding?: boolean }> = ({
   title,
   children,
-}) => {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionCard}>{children}</View>
-    </View>
-  );
-};
+  noRightPadding,
+}) => (
+  <View style={[styles.row, noRightPadding && { paddingRight: 0 }]}>
+    <Text style={styles.rowTitle}>{title}</Text>
+    <View style={styles.rowContent}>{children}</View>
+  </View>
+);
 
-const Row: React.FC<{
-  title: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-  children?: React.ReactNode;
-  noRightPadding?: boolean;
-}> = ({ title, subtitle, right, children, noRightPadding }) => {
-  return (
-    <View style={[styles.row, noRightPadding && { paddingRight: 0 }]}>
-      <View style={styles.rowTextWrap}>
-        <Text style={styles.rowTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.rowSubtitle}>{subtitle}</Text> : null}
-      </View>
-      {children ? <View style={styles.rowRight}>{children}</View> : null}
-      {right ? <View style={styles.rowRight}>{right}</View> : null}
-    </View>
-  );
-};
+const SwitchRow: React.FC<{ title: string; value: boolean; onValueChange: (v: boolean) => void }> = ({
+  title,
+  value,
+  onValueChange,
+}) => (
+  <View style={styles.row}>
+    <Text style={styles.rowTitle}>{title}</Text>
+    <Switch value={value} onValueChange={onValueChange} />
+  </View>
+);
 
-type SegmentedOption = { key: string; label: string };
+const ActionRow: React.FC<{ label: string; onPress?: () => void; danger?: boolean }> = ({ label, onPress, danger }) => (
+  <Pressable style={styles.actionRow} onPress={onPress}>
+    <Text style={[styles.actionLabel, danger && { color: '#dc2626' }]}>{label}</Text>
+  </Pressable>
+);
 
-const Segmented: React.FC<{
-  options: SegmentedOption[];
-  value: string;
-  onChange: (key: string) => void;
-}> = ({ options, value, onChange }) => {
-  return (
-    <View style={styles.segmented}>
-      {options.map((opt, idx) => {
-        const selected = value === opt.key;
-        return (
-          <Pressable
-            key={opt.key}
-            onPress={() => onChange(opt.key)}
-            style={({ pressed }) => [
-              styles.segment,
-              selected && styles.segmentSelected,
-              idx === 0 && styles.segmentFirst,
-              idx === options.length - 1 && styles.segmentLast,
-              pressed && !selected && styles.segmentPressed,
-            ]}
-          >
-            <Text style={[styles.segmentLabel, selected && styles.segmentLabelSelected]}>
-              {opt.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-};
+const RowButtons: React.FC<{ children: React.ReactNode }> = ({ children }) => <View style={styles.buttonRow}>{children}</View>;
+
+const MiniButton: React.FC<{ label: string; onPress?: () => void }> = ({ label, onPress }) => (
+  <Pressable onPress={onPress} style={({ pressed }) => [styles.miniBtn, pressed && styles.miniBtnPressed]}>
+    <Text style={styles.miniBtnLabel}>{label}</Text>
+  </Pressable>
+);
+
+type SegOpt = { k: string; l: string };
+const Segmented: React.FC<{ options: SegOpt[]; value: string; onChange: (k: string) => void }> = ({
+  options,
+  value,
+  onChange,
+}) => (
+  <View style={styles.segmented}>
+    {options.map((o, i) => {
+      const sel = value === o.k;
+      return (
+        <Pressable
+          key={o.k}
+          onPress={() => onChange(o.k)}
+          style={({ pressed }) => [
+            styles.segment,
+            sel && styles.segmentSelected,
+            i === 0 && styles.segmentFirst,
+            i === options.length - 1 && styles.segmentLast,
+            pressed && !sel && styles.segmentPressed,
+          ]}
+        >
+          <Text style={[styles.segmentLabel, sel && styles.segmentLabelSelected]}>{o.l}</Text>
+        </Pressable>
+      );
+    })}
+  </View>
+);
+
+function initials(text?: string | null) {
+  if (!text) return 'U';
+  const p = text.trim().split(/\s+/);
+  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+  return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-  },
-  section: {
-    marginBottom: SECTION_SPACING,
-  },
+  container: { padding: 16 },
+  section: { marginBottom: 16 },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#6b7280',
     marginBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
-  sectionCard: {
-    backgroundColor: '#ffffff',
+  card: {
+    backgroundColor: '#fff',
     borderRadius: 12,
-    overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#e5e7eb',
-  },
-  row: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
-  },
-  rowTextWrap: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  rowTitle: {
-    fontSize: 16,
-    color: '#111827',
-    fontWeight: '500',
-  },
-  rowSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  rowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  linkRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
-  },
-  linkTitle: {
-    fontSize: 16,
-    color: '#2563eb',
-    fontWeight: '500',
-  },
-  linkSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  segmented: {
-    flexDirection: 'row',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
     overflow: 'hidden',
   },
-  segment: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: 'transparent',
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
   },
-  segmentFirst: {
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+  rowTitle: { fontSize: 15, fontWeight: '500', color: '#111827', flex: 1 },
+  rowContent: { flex: 1, alignItems: 'flex-end' },
+
+  profileRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#e5e7eb' },
+  avatarFallback: { justifyContent: 'center', alignItems: 'center' },
+  avatarInitials: { fontSize: 18, fontWeight: '700', color: '#374151' },
+  name: { fontSize: 18, fontWeight: '600', color: '#111827' },
+  email: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+
+  buttonRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, padding: 16, paddingTop: 0 },
+  miniBtn: { backgroundColor: '#f3f4f6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  miniBtnPressed: { backgroundColor: '#e5e7eb' },
+  miniBtnLabel: { fontSize: 12, fontWeight: '600', color: '#111827' },
+
+  segmented: { flexDirection: 'row', backgroundColor: '#f3f4f6', borderRadius: 8, overflow: 'hidden' },
+  segment: { paddingVertical: 8, paddingHorizontal: 12 },
+  segmentFirst: { borderTopLeftRadius: 8, borderBottomLeftRadius: 8 },
+  segmentLast: { borderTopRightRadius: 8, borderBottomRightRadius: 8 },
+  segmentSelected: { backgroundColor: '#111827' },
+  segmentPressed: { backgroundColor: '#e5e7eb' },
+  segmentLabel: { fontSize: 12, fontWeight: '600', color: '#111827' },
+  segmentLabelSelected: { color: '#fff' },
+
+  actionRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
   },
-  segmentLast: {
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  segmentSelected: {
-    backgroundColor: '#111827',
-  },
-  segmentPressed: {
-    backgroundColor: '#e5e7eb',
-  },
-  segmentLabel: {
-    fontSize: 13,
-    color: '#111827',
-    fontWeight: '600',
-  },
-  segmentLabelSelected: {
-    color: '#ffffff',
-  },
+  actionLabel: { fontSize: 15, fontWeight: '500', color: '#2563eb' },
 });
 
 export default Settings;

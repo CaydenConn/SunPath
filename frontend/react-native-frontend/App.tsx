@@ -9,12 +9,9 @@ import 'react-native-get-random-values';
 
 import Login from './src/screens/Login'
 import MainPage from './src/screens/MainPage'
-<<<<<<< HEAD
 import SettingsPage from './src/screens/SettingsPage' // <-- add this import
-=======
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider } from './styles/ThemeContext';
->>>>>>> origin/master
 
 type RootStackParam = {
   Login: undefined;
@@ -22,7 +19,7 @@ type RootStackParam = {
 };
 
 type InsideStackParam = {
-  // MainPage: undefined;
+  MainPage: undefined;
   Settings: undefined; // <-- add this route
 };
 
@@ -33,7 +30,7 @@ function InsideLayout() {
   return (
     <InsideStack.Navigator screenOptions={{ headerShown: false }} /* initialRouteName="Settings" */>
       {/* Replace MainPage with Settings to preview the settings UI */}
-      <InsideStack.Screen name="Settings" component={SettingsPage}/>
+      <InsideStack.Screen name="MainPage" component={SettingsPage}/>
     </InsideStack.Navigator>
   );
 }
