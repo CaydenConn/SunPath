@@ -84,6 +84,7 @@ def get_user_pos_forecast_weather():
                 'time': hour.get('time'),
                 'temp_c': hour.get('temp_c'),
                 'temp_f': hour.get('temp_f'),
+                'is_day': hour.get('is_day'),
                 'condition': hour.get('condition'),
                 'wind_mph': hour.get('wind_mph'),
                 'wind_kph': hour.get('wind_kph'),
