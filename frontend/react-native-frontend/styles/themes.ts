@@ -4,10 +4,11 @@ const darkBackground = "black";
 const lightTextColor = 'black'
 const darkTextColor = 'white'
 
-const lightSheetShading1 = '#e5e5e5'
-const lightSheetShading2 = '#a3a3a3'
-const darkSheetShading1 = '#161616'
-const darkSheetShading2 = '#4E4E4E'
+const lightSheetShading1 = '#F2F2F2'
+const lightSheetShading2 = '#D9D9D9'
+const darkSheetShading1 = '#1A1A1A'
+const darkSheetShading2 = '#333333'
+
 // GLOBAL COLORS
 export const COLORS = {
     

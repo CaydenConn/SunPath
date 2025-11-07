@@ -1,7 +1,8 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Text, StyleSheet, TouchableOpacity, View, Image } from 'react-native';
 import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useTheme } from '../../styles/ThemeContext';
+import { getDistance } from 'geolib';
 import AddressSearchBar from './AddressSearchBar';
 
 type InputBottomSheetProps = {
@@ -21,32 +22,65 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['11%', '40%', '87%'], []);
 
+  const [distanceMetric, setDistanceMetric] = useState<string>("miles")
 
   const pinnedLocationsMap = {
     categories: [
       {
         name: '0000',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
-        name: '8888'
+        name: '8888',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         name: '1111',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
-        name: '2222'
+        name: '2222',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         name: '3333',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
-        name: '4444'
+        name: '4444',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         name: '5555',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
-        name: '6666'
+        name: '6666',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
     ],
   }
@@ -55,43 +89,83 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
     categories: [
       {
         street: '432 Farmington Dr',
-        city_state: 'Plantation, Fl'
+        city_state: 'Plantation, Fl',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         street: '918 Westministr Dr',
-        city_state: 'Vermont'
+        city_state: 'Vermont',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         street: '345 Peachtree Rd',
-        city_state: 'Alabama'
+        city_state: 'Alabama',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         street: '1122 HoooYeee Ct',
-        city_state: 'Texas'
+        city_state: 'Texas',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         street: '906 Leaftree Cr',
-        city_state: 'Vermont'
+        city_state: 'Vermont',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         street: '432 Farmington Dr',
-        city_state: 'Plantation, Fl'
+        city_state: 'Plantation, Fl',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         street: '918 Westministr Dr',
-        city_state: 'Vermont'
+        city_state: 'Vermont',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         street: '345 Peachtree Rd',
-        city_state: 'Alabama'
+        city_state: 'Alabama',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         street: '1122 HoooYeee Ct',
-        city_state: 'Texas'
+        city_state: 'Texas',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
       {
         street: '906 Leaftree Cr',
-        city_state: 'Vermont'
+        city_state: 'Vermont',
+        location: {
+          latitude: 26.127987,
+          longitude: -80.224480
+        }
       },
     ],
   }
@@ -141,6 +215,10 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
                 <Image style={styles.pinned_icon} source={require("../../assets/house.png")}/>
               </View>
               <Text style={styles.text}>Home</Text>
+              {distanceMetric === "km"
+                ? <Text style={styles.sub_text}>493km</Text>
+                : <Text style={styles.sub_text}>493mi</Text>
+                }
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -151,6 +229,10 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
                 <Image style={styles.pinned_icon} source={require("../../assets/suitcase.png")}/>
               </View>
               <Text style={styles.text}>Work</Text>
+              {distanceMetric === "km"
+                ? <Text style={styles.sub_text}>493km</Text>
+                : <Text style={styles.sub_text}>493mi</Text>
+              }
             </TouchableOpacity>
             
             {pinnedData.categories.map((category, index) => (
@@ -163,6 +245,17 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
                   <Image style={styles.pinned_icon} source={require("../../assets/location.png")}/>
                 </View>
                 <Text style={styles.text}>{category.name}</Text>
+                {userLocation && category.location ? (
+                  distanceMetric === "km"
+                    ? <Text style={styles.sub_text}>
+                        {(getDistance(userLocation, category.location) / 1000).toFixed(1)} km
+                      </Text>
+                    : <Text style={styles.sub_text}>
+                        {(getDistance(userLocation, category.location) / 1000 * 0.621371).toFixed(1)} mi
+                      </Text>
+                ) : (
+                  <Text></Text>
+                )}
               </TouchableOpacity>
             ))}
             <TouchableOpacity 
@@ -194,37 +287,12 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
           simultaneousHandlers={bottomSheetRef}
           style={styles.recents_container}
           contentContainerStyle={styles.recents_container_inner}>
-            <TouchableOpacity 
-            onPress={handlePinnedLocationPress}
-            activeOpacity={0.75} 
-            style={styles.recent_item}>
-              <View style={styles.recent_icon_container}>
-                <Image style={styles.recent_icon} source={require("../../assets/house.png")}/>
-              </View>
-              <View  style={styles.recent_info}>
-                <Text style={styles.text}>432 Farmington Dr</Text>
-                <Text style={styles.text}>Plantation, Fl</Text>
-              </View>
-            </TouchableOpacity>
 
-            <TouchableOpacity 
-            onPress={handlePinnedLocationPress}
-            activeOpacity={0.75} 
-            style={styles.recent_item}>
-              <View style={styles.recent_icon_container}>
-                <Image style={styles.recent_icon} source={require("../../assets/suitcase.png")}/>
-              </View>
-              <View  style={styles.recent_info}>
-                <Text style={styles.text}>Kimley Horn</Text>
-                <Text style={styles.text}>West Palm Beach, Fl</Text>
-              </View>
-            </TouchableOpacity>
-            
-            {recentsMap.categories.map((category, index) => (
+            {recentsMap.categories.slice(0, 20).map((category, index) => (
               <TouchableOpacity 
               key={index}
               onPress={handlePinnedLocationPress}
-              activeOpacity={0.75} 
+              activeOpacity={0.6} 
               style={styles.recent_item}>
                 <View style={styles.recent_icon_container}>
                   <Image style={styles.recent_icon} source={require("../../assets/location.png")}/>
@@ -236,6 +304,17 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
                 
               </TouchableOpacity>
             ))}
+
+            <TouchableOpacity style={[styles.recent_item, { borderBottomWidth: 0 }]}>
+              <View>
+                <Image style={styles.recent_icon}/>
+              </View>
+              <View  style={styles.recent_info}>
+                <Text style={styles.text}></Text>
+                <Text style={styles.text}></Text>
+              </View>
+            </TouchableOpacity>
+
           </BottomSheetScrollView>
         </View>
 
@@ -271,7 +350,7 @@ const createStyles = (theme : any) =>
       flexDirection: 'column',
     },
     pinned_locations_container: {
-      height: 100,
+      height: 120,
       borderRadius: 10,
       backgroundColor: theme.sheetShading1,
     },
@@ -310,7 +389,7 @@ const createStyles = (theme : any) =>
     recents_container: {
       borderRadius: 10,
       backgroundColor: theme.sheetShading1,
-      maxHeight: 515,
+      height: 500,
     },
     recents_container_inner: {
       justifyContent: "center",
@@ -319,14 +398,14 @@ const createStyles = (theme : any) =>
     recent_item: {
       flexDirection: 'row',
       width: '100%',
-      borderColor: '#a3a3a3',
+      borderColor: theme.sheetShading2,
       borderBottomWidth: 1,
       justifyContent: 'center',
       paddingVertical: 10,
     },
     recent_icon_container: {
       flexDirection:"column",
-      backgroundColor:'#a3a3a3', 
+      backgroundColor: theme.sheetShading2, 
       borderRadius:30,
       justifyContent: 'center',
       alignItems: 'center',
@@ -346,6 +425,10 @@ const createStyles = (theme : any) =>
     },
     text: {
       color: theme.textColor,
+      fontSize: 14,
+    },
+    sub_text: {
+      fontSize: 13,
     }
 });
 
