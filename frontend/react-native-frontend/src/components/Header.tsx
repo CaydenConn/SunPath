@@ -163,9 +163,9 @@ export default function Header({ userLocation }: HeaderProps) {
   useEffect(() => {
     if(currentWeatherData && forecastData) {
       setWeatherIcons({
-        cur: descToIcon.get(currentWeatherData.condition.text) || snowingIcon,
-        forecast1: descToIcon.get(forecastData.forecast_hour_1.condition.text) || rainingIcon,
-        forecast3: descToIcon.get(forecastData.forecast_hour_3.condition.text) || cloudyIcon
+        cur: descToIcon.get(currentWeatherData.condition.text) || lightningIcon,
+        forecast1: descToIcon.get(forecastData.forecast_hour_1.condition.text) || lightningIcon,
+        forecast3: descToIcon.get(forecastData.forecast_hour_3.condition.text) || lightningIcon
       })
     }
   }, [currentWeatherData, forecastData])

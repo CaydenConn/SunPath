@@ -271,6 +271,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
                 
               </View>
               <Text style={styles.text}>Add</Text>
+              <Text></Text>
             </TouchableOpacity>
             
           </BottomSheetScrollView>
@@ -428,6 +429,7 @@ const createStyles = (theme : any) =>
       fontSize: 14,
     },
     sub_text: {
+      color: theme.textColor,
       fontSize: 13,
     }
 });
