@@ -5,10 +5,16 @@ import { StyleSheet, Text, View } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth'
 import { FIREBASE_AUTH } from './FirebaseConfig'
+import 'react-native-get-random-values';
 
 import Login from './src/screens/Login'
 import MainPage from './src/screens/MainPage'
+<<<<<<< HEAD
 import SettingsPage from './src/screens/SettingsPage' // <-- add this import
+=======
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ThemeProvider } from './styles/ThemeContext';
+>>>>>>> origin/master
 
 type RootStackParam = {
   Login: undefined;
@@ -42,15 +48,19 @@ export default function App() {
     });
   }, []);
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName='Inside'>
-        {user ? (
-          <Stack.Screen name='Login' component={Login} options={{ headerShown: false }}/>
-        ) : (
-          <Stack.Screen name='Inside' component={InsideLayout} options={{ headerShown: false }}/>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ThemeProvider>
+      <GestureHandlerRootView>
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {user ? (
+              <Stack.Screen name='Inside' component={InsideLayout} options={{ headerShown: false }}/>
+            ) : (
+              <Stack.Screen name='Login' component={Login} options={{ headerShown: false }}/>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }
 

@@ -1,5 +1,5 @@
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import React, { useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import Header from '../components/Header'
 import Map, { MapRef } from '../components/Map'
@@ -8,8 +8,12 @@ import CenterButton from '../components/CenterUserButton';
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import InputBottomSheet from '../components/InputBottomSheet';
 
-// Define your navigation stack types
+import * as Location from 'expo-location';
+
+// Define your navigation stack types 
 type RootStackParamList = {
   MainPage: undefined;
   // Add other screens if needed
@@ -24,6 +28,18 @@ type MainPageProps = {
 const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
 
     const mapRef = useRef<MapRef>(null);
+    const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
+    const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
+    const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+    useEffect(() => {
+        (async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") return;
+            const loc = await Location.getCurrentPositionAsync({});
+            setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+            })();
+    }, []);
 
     const handleCenter = (): void => {
         mapRef.current?.centerOnUser();
@@ -31,10 +47,10 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <Header/>
-            <Map ref={mapRef}/>
+            <Header userLocation={userLocation}/>
+            <Map ref={mapRef} routeCoordinates={routeCoordinates} destination={destination}/>
             <CenterButton onPress={handleCenter}/>
-            
+            <InputBottomSheet userLocation={userLocation} onRouteFetched={setRouteCoordinates} onDestinationSelected={setDestination}/>
             {/* Logout button */}
             {/* <View style={styles.logoutContainer}>
                 <Button title="Log out" onPress={() => FIREBASE_AUTH.signOut()} />
@@ -47,6 +63,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    top: {
+        zIndex: 10000,
+        flex: 1,
+    }
 });
 
 export default MainPage
