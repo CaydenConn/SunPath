@@ -1,15 +1,21 @@
-const lightBackground = "#fff";
-const darkBackground = "#020618";
+const lightBackground = "#ffffffff";
+const darkBackground = "black";
 
 const lightTextColor = 'black'
 const darkTextColor = 'white'
 
+const lightSheetShading1 = '#e5e5e5'
+const lightSheetShading2 = '#a3a3a3'
+const darkSheetShading1 = '#161616'
+const darkSheetShading2 = '#4E4E4E'
 // GLOBAL COLORS
 export const COLORS = {
     
     light: {
         color: lightBackground,
         textColor: lightTextColor,
+        sheetShading1: lightSheetShading1,
+        sheetShading2: lightSheetShading2,
         // HEADER
         header: {
             height: 60,
@@ -54,6 +60,8 @@ export const COLORS = {
     dark: {
         color: darkBackground,
         textColor: darkTextColor,
+        sheetShading1: darkSheetShading1,
+        sheetShading2: darkSheetShading2,
         // HEADER
         header: {
             height: 60,
