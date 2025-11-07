@@ -13,6 +13,7 @@ import sunnyIcon from "../../assets/weather-icons/sunny.png"
 import clearIcon from "../../assets/weather-icons/clear.png"
 import cloudySunIcon from "../../assets/weather-icons/cloudy-sun.png"
 import lightningIcon from "../../assets/weather-icons/lightening.png"
+import rainingIcon from "../../assets/weather-icons/raining.png"
 // END
 
 
@@ -44,14 +45,14 @@ export default function Header({ userLocation }: HeaderProps) {
   const styles = createStyles(theme);
 
   //WEATHER ICON MAP
-  const descToIconDay = new Map([
+  const descToIcon = new Map([
     ["Sunny", sunnyIcon],
     ["Clear", clearIcon],
     ["Partly cloudy", cloudySunIcon],
     ["Cloudy", ""],
     ["Overcast", ""],
     ["Mist", ""],
-    ["Patchy rain possible", ""],
+    ["Patchy rain possible", rainingIcon],
     ["Patchy snow possible", ""],
     ["Patchy sleet possible", ""],
     ["Patchy freezing drizzle possible", ""],
@@ -61,15 +62,15 @@ export default function Header({ userLocation }: HeaderProps) {
     ["Fog", ""],
     ["Freezing fog", ""],
     ["Patchy light drizzle", ""],
-    ["Light drizzle", ""],
+    ["Light drizzle", rainingIcon],
     ["Freezing drizzle", ""],
     ["Heavy freezing drizzle", ""],
-    ["Patchy light rain", ""],
-    ["Light rain", ""],
-    ["Moderate rain at times", ""],
-    ["Moderate rain", ""],
-    ["Heavy rain at times", ""],
-    ["Heavy rain", ""],
+    ["Patchy light rain", rainingIcon],
+    ["Light rain", rainingIcon],
+    ["Moderate rain at times", rainingIcon],
+    ["Moderate rain", rainingIcon],
+    ["Heavy rain at times", rainingIcon],
+    ["Heavy rain", rainingIcon],
     ["Light freezing rain", ""],
     ["Moderate or heavy freezing rain", ""],
     ["Light sleet", ""],
@@ -81,9 +82,9 @@ export default function Header({ userLocation }: HeaderProps) {
     ["Patchy heavy snow", ""],
     ["Heavy snow", ""],
     ["Ice pellets", ""],
-    ["Light rain shower", ""],
-    ["Moderate or heavy rain shower", ""],
-    ["Torrential rain shower", ""],
+    ["Light rain shower", rainingIcon],
+    ["Moderate or heavy rain shower", rainingIcon],
+    ["Torrential rain shower", rainingIcon],
     ["Light sleet showers", ""],
     ["Moderate or heavy sleet showers", ""],
     ["Light snow showers", ""],
@@ -156,13 +157,13 @@ export default function Header({ userLocation }: HeaderProps) {
     const interval = setInterval(fetchData, 3600000)
     return () => clearInterval(interval);
   }, [userLocation])
-
+  console.log(currentWeatherData, forecastData)
   useEffect(() => {
     if(currentWeatherData && forecastData) {
       setWeatherIcons({
-        cur: descToIconDay.get(currentWeatherData.text) || lightningIcon,
-        forecast1: descToIconDay.get(forecastData.forecast_hour_1.text) || lightningIcon,
-        forecast3: descToIconDay.get(forecastData.forecast_hour_3.text) || lightningIcon
+        cur: descToIcon.get(currentWeatherData.text) || lightningIcon,
+        forecast1: descToIcon.get(forecastData.forecast_hour_1.text) || lightningIcon,
+        forecast3: descToIcon.get(forecastData.forecast_hour_3.text) || lightningIcon
       })
     }
   }, [currentWeatherData, forecastData])
@@ -281,6 +282,7 @@ const createStyles = (theme : any) =>
       flexDirection: 'row',
       borderRadius: theme.header.borderRadius,
       padding: 10,
+      paddingRight: 16,
       marginLeft: theme.header.margin,
       marginRight: theme.header.margin,
       backgroundColor: theme.color,
