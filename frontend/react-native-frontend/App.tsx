@@ -11,6 +11,7 @@ import Login from './src/screens/Login'
 import MainPage from './src/screens/MainPage'
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider } from './styles/ThemeContext';
+import SettingsPage from './src/screens/SettingsPage';
 
 type RootStackParam = {
   Login: undefined;
@@ -19,6 +20,7 @@ type RootStackParam = {
 
 type InsideStackParam = {
   MainPage: undefined;
+  SettingsPage: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParam>();
@@ -28,6 +30,7 @@ function InsideLayout() {
   return (
     <InsideStack.Navigator screenOptions={{ headerShown: false }}>
       <InsideStack.Screen name="MainPage" component={MainPage}/>
+      <InsideStack.Screen name="SettingsPage" component={SettingsPage}/>
     </InsideStack.Navigator>
   );
 }

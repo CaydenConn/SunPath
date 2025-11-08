@@ -23,11 +23,12 @@ import cloudyMoonIcon from "../../assets/weather-icons/cloudy-moon.png"
 type HeaderProps = {
   userLocation: { latitude: number; longitude: number } | null;
 }
-type RootStackParam = {
-  Login: undefined;
-  Inside: undefined;
+type InsideStackParam = {
+  MainPage: undefined;
+  SettingsPage: undefined;
 };
-type NavigationProp = NativeStackNavigationProp<RootStackParam>;
+type NavigationProp = NativeStackNavigationProp<InsideStackParam>;
+
 type WeatherIconParam = {
   cur: any,
   forecast1: any,
@@ -40,8 +41,7 @@ export default function Header({ userLocation }: HeaderProps) {
 
   const navigation = useNavigation<NavigationProp>();
   const handleSettingsPress = (): void => {
-      console.log("Settings Pressed");
-      // navigation.navigate('Login');
+      navigation.navigate('SettingsPage');
   };
 
   const { theme, colorScheme, toggleTheme } = useTheme();
