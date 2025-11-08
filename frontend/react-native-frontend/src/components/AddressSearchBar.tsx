@@ -3,6 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from "react-native-google-places-autocomplete";
 import { GOOGLE_PLACES_API_KEY } from "@env";
 import polyline from "@mapbox/polyline";
+import { useTheme } from "../../styles/ThemeContext";
 
 
 type AddressSearchBarProps = {
@@ -14,6 +15,9 @@ type AddressSearchBarProps = {
 };
 
 const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRouteFetched, onDestinationSelected, onPress, onFocusExpandSheet, }) => {
+    const { theme, colorScheme, toggleTheme } = useTheme();
+    const styles = createStyles(theme);
+    
     const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
     const handlePlaceSelect = async (data: any, details: any) => {
         placesRef.current?.blur();
@@ -67,11 +71,11 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
                 debounce={400}
                 minLength={3}
                 styles={{
-                textInput: styles.textInput,
-                listView: styles.listView,
-                row: styles.row,
-                separator: styles.separator,
-                description: styles.description,
+                    textInput: styles.textInput,
+                    listView: styles.listView,
+                    row: styles.row,
+                    separator: styles.separator,
+                    description: styles.description,
                 }}
 
                 autoFillOnNotFound={false}
@@ -88,7 +92,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
                 GoogleReverseGeocodingQuery={{}}
                 isRowScrollable={true}
                 keyboardShouldPersistTaps="always"
-                listUnderlayColor="#c8c7cc"
+                listUnderlayColor={theme.sheetShading2}
                 listViewDisplayed="auto"
                 keepResultsAfterBlur={false}
                 nearbyPlacesAPI="GooglePlacesSearch"
@@ -105,6 +109,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
                 textInputProps={{
                     onFocus: onFocusExpandSheet,
                     blurOnSubmit: true,
+                    placeholderTextColor: theme.textColor,
                 }}
                 timeout={20000}
             />
@@ -112,33 +117,39 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
     );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 0 },
-  textInput: {
-    height: 44,
-    fontSize: 16,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  listView: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    marginTop: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  row: { backgroundColor: "#fff", padding: 13, height: 44, flexDirection: "row" },
-  separator: { height: 0.5, backgroundColor: "#c8c7cc" },
-  description: { fontSize: 14 },
+const createStyles = (theme : any) => 
+    StyleSheet.create({
+        container: { flex: 0 },
+        textInput: {
+            height: 44,
+            fontSize: 16,
+            backgroundColor: theme.sheetShading1,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+        },
+        listView: {
+            backgroundColor: theme.sheetShading1 ,
+            borderRadius: 8,
+            marginTop: 4,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+        },
+        row: { 
+            backgroundColor: theme.sheetShading1, 
+            padding: 13, 
+            height: 44, 
+            flexDirection: "row" 
+        },
+        separator: { height: 0.7, backgroundColor: theme.sheetShading2 },
+        description: { fontSize: 14 },
 });
 
 export default AddressSearchBar;
