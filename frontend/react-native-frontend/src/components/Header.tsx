@@ -16,6 +16,7 @@ import lightningIcon from "../../assets/weather-icons/lightening.png"
 import rainingIcon from "../../assets/weather-icons/raining.png"
 import snowingIcon from "../../assets/weather-icons/snowing.png"
 import cloudyIcon from "../../assets/weather-icons/cloudy.png"
+import cloudyMoonIcon from "../../assets/weather-icons/cloudy-moon.png"
 // END
 
 
@@ -48,55 +49,55 @@ export default function Header({ userLocation }: HeaderProps) {
 
   //WEATHER ICON MAP
   const descToIcon = new Map([
-    ["Sunny", sunnyIcon],
-    ["Clear", clearIcon],
-    ["Partly Cloudy", cloudySunIcon],
-    ["Cloudy", cloudyIcon],
-    ["Overcast", cloudyIcon],
-    ["Mist", cloudyIcon],
-    ["Patchy rain possible", rainingIcon],
-    ["Patchy snow possible", snowingIcon],
-    ["Patchy sleet possible", snowingIcon],
-    ["Patchy freezing drizzle possible", snowingIcon],
-    ["Thundery outbreaks possible", lightningIcon],
-    ["Blowing snow", snowingIcon],
-    ["Blizzard", snowingIcon],
-    ["Fog", cloudyIcon],
-    ["Freezing fog", cloudyIcon],
-    ["Patchy light drizzle", rainingIcon],
-    ["Light drizzle", rainingIcon],
-    ["Freezing drizzle", rainingIcon],
-    ["Heavy freezing drizzle", rainingIcon],
-    ["Patchy light rain", rainingIcon],
-    ["Light rain", rainingIcon],
-    ["Moderate rain at times", rainingIcon],
-    ["Moderate rain", rainingIcon],
-    ["Heavy rain at times", rainingIcon],
-    ["Heavy rain", rainingIcon],
-    ["Light freezing rain", rainingIcon],
-    ["Moderate or heavy freezing rain", rainingIcon],
-    ["Light sleet", snowingIcon],
-    ["Moderate or heavy sleet", snowingIcon],
-    ["Patchy light snow", snowingIcon],
-    ["Light snow", snowingIcon],
-    ["Patchy moderate snow", snowingIcon],
-    ["Moderate snow", snowingIcon],
-    ["Patchy heavy snow", snowingIcon],
-    ["Heavy snow", snowingIcon],
-    ["Ice pellets", snowingIcon],
-    ["Light rain shower", rainingIcon],
-    ["Moderate or heavy rain shower", rainingIcon],
-    ["Torrential rain shower", rainingIcon],
-    ["Light sleet showers", snowingIcon],
-    ["Moderate or heavy sleet showers", snowingIcon],
-    ["Light snow showers", snowingIcon],
-    ["Moderate or heavy snow showers", snowingIcon],
-    ["Light showers of ice pellets", snowingIcon],
-    ["Moderate or heavy showers of ice pellets", snowingIcon],
-    ["Patchy light rain with thunder", lightningIcon],
-    ["Moderate or heavy rain with thunder", lightningIcon],
-    ["Patchy light snow with thunder", lightningIcon],
-    ["Moderate or heavy snow with thunder", lightningIcon],
+    ["sunny", sunnyIcon],
+    ["clear", clearIcon],
+    ["partly cloudy", cloudySunIcon],
+    ["cloudy", cloudyIcon],
+    ["overcast", cloudyIcon],
+    ["mist", cloudyIcon],
+    ["patchy rain possible", rainingIcon],
+    ["patchy snow possible", snowingIcon],
+    ["patchy sleet possible", snowingIcon],
+    ["patchy freezing drizzle possible", snowingIcon],
+    ["thundery outbreaks possible", lightningIcon],
+    ["blowing snow", snowingIcon],
+    ["blizzard", snowingIcon],
+    ["fog", cloudyIcon],
+    ["freezing fog", cloudyIcon],
+    ["patchy light drizzle", rainingIcon],
+    ["light drizzle", rainingIcon],
+    ["freezing drizzle", rainingIcon],
+    ["heavy freezing drizzle", rainingIcon],
+    ["patchy light rain", rainingIcon],
+    ["light rain", rainingIcon],
+    ["moderate rain at times", rainingIcon],
+    ["moderate rain", rainingIcon],
+    ["heavy rain at times", rainingIcon],
+    ["heavy rain", rainingIcon],
+    ["light freezing rain", rainingIcon],
+    ["moderate or heavy freezing rain", rainingIcon],
+    ["light sleet", snowingIcon],
+    ["moderate or heavy sleet", snowingIcon],
+    ["patchy light snow", snowingIcon],
+    ["light snow", snowingIcon],
+    ["patchy moderate snow", snowingIcon],
+    ["moderate snow", snowingIcon],
+    ["patchy heavy snow", snowingIcon],
+    ["heavy snow", snowingIcon],
+    ["ice pellets", snowingIcon],
+    ["light rain shower", rainingIcon],
+    ["moderate or heavy rain shower", rainingIcon],
+    ["torrential rain shower", rainingIcon],
+    ["light sleet showers", snowingIcon],
+    ["moderate or heavy sleet showers", snowingIcon],
+    ["light snow showers", snowingIcon],
+    ["moderate or heavy snow showers", snowingIcon],
+    ["light showers of ice pellets", snowingIcon],
+    ["moderate or heavy showers of ice pellets", snowingIcon],
+    ["patchy light rain with thunder", lightningIcon],
+    ["moderate or heavy rain with thunder", lightningIcon],
+    ["patchy light snow with thunder", lightningIcon],
+    ["moderate or heavy snow with thunder", lightningIcon],
   ])
 
   const [weatherIcons, setWeatherIcons] = useState<WeatherIconParam>({
@@ -152,7 +153,7 @@ export default function Header({ userLocation }: HeaderProps) {
         console.log("Error: ", error)
       }
     }
-
+    console.log(currentWeatherData,forecastData)
     // Call on component load
     fetchData()
     // Call every hour
@@ -162,11 +163,30 @@ export default function Header({ userLocation }: HeaderProps) {
 
   useEffect(() => {
     if(currentWeatherData && forecastData) {
+      const normalize = (txt: string) => txt?.toLowerCase().trim();
       setWeatherIcons({
-        cur: descToIcon.get(currentWeatherData.condition.text) || lightningIcon,
-        forecast1: descToIcon.get(forecastData.forecast_hour_1.condition.text) || lightningIcon,
-        forecast3: descToIcon.get(forecastData.forecast_hour_3.condition.text) || lightningIcon
+        cur: descToIcon.get(normalize(currentWeatherData.condition.text)) || lightningIcon,
+        forecast1: descToIcon.get(normalize(forecastData.forecast_hour_1.condition.text)) || lightningIcon,
+        forecast3: descToIcon.get(normalize(forecastData.forecast_hour_3.condition.text)) || lightningIcon
       })
+      if(normalize(currentWeatherData.condition.text) === "partly cloudy" && currentWeatherData.is_day === 0){
+        setWeatherIcons(prev => ({
+          ...prev,
+          cur: cloudyMoonIcon
+        }));
+      }
+      if(normalize(forecastData.forecast_hour_1.condition.text) === "partly cloudy" && currentWeatherData.is_day === 0){
+        setWeatherIcons(prev => ({
+          ...prev,
+          forecast1: cloudyMoonIcon
+        }));
+      }
+      if(normalize(forecastData.forecast_hour_3.condition.text) === "partly cloudy" && currentWeatherData.is_day === 0){
+        setWeatherIcons(prev => ({
+          ...prev,
+          forecast3: cloudyMoonIcon
+        }));
+      }
     }
   }, [currentWeatherData, forecastData])
 
