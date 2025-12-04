@@ -17,3 +17,6 @@ frontend/react-native-frontend/.env
 backend/.env
 
 backend/sunpath-admin.json
+.env
+frontend/react-native-frontend/.env
+backend/.env
