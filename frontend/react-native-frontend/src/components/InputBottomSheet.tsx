@@ -1,9 +1,13 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Text, StyleSheet, TouchableOpacity, View, Image } from 'react-native';
 import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useTheme } from '../../styles/ThemeContext';
 import { getDistance } from 'geolib';
+import polyline from "@mapbox/polyline";
 import AddressSearchBar from './AddressSearchBar';
+
+import { API_BASE_URL, GOOGLE_PLACES_API_KEY } from "@env";
+import { getAuth } from 'firebase/auth';
 
 type InputBottomSheetProps = {
   userLocation: { latitude: number; longitude: number } | null;
@@ -11,11 +15,67 @@ type InputBottomSheetProps = {
   onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
 };
 
+type RecentItem = {
+  label: string;
+  address: string;
+  lat: number;
+  lng: number;
+  place_id?: string;
+  ts?: string;
+};
 const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, }) => {
   const handlePinnedLocationPress = (): void => {
       console.log("Favorite Pressed");
   };
-  
+  const handleLocationPress = async (item: RecentItem) => {
+    if (!userLocation) return;
+    bottomSheetRef.current?.snapToIndex(1);
+    const destination = { latitude: item.lat, longitude: item.lng };
+    
+    // Notify parent about destination selection
+    onDestinationSelected?.(destination);
+
+    // Fetch route to destination (same as AddressSearchBar)
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/directions/json?origin=${userLocation.latitude},${userLocation.longitude}&destination=${destination.latitude},${destination.longitude}&key=${GOOGLE_PLACES_API_KEY}`
+      );
+      const dataJson = await response.json();
+      if (!dataJson.routes?.length) return;
+
+      const routeCoords: { latitude: number; longitude: number }[] = [];
+      const steps = dataJson.routes[0].legs[0].steps;
+      for (const step of steps) {
+        const stepPoints = polyline.decode(step.polyline.points);
+        stepPoints.forEach((p: number[]) =>
+          routeCoords.push({ latitude: p[0], longitude: p[1] })
+        );
+      }
+
+      const simplifiedRoute = routeCoords.filter((_, index) => index % 3 === 0);
+      onRouteFetched(simplifiedRoute);
+
+      // Adds Searched Locations to Recents
+                  const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
+                      method: "POST",
+                      headers: {
+                          "Content-Type": "application/json",
+                          "X-User-Id": `${getAuth().currentUser?.uid}`,
+                      },
+                      body: JSON.stringify({
+                          label: item.label ?? item.address ?? "",
+                          address: item.address ?? "", 
+                          lat: item.lat,
+                          lng: item.lng,
+                          place_id: item.place_id,
+                      }),
+                  });
+                  const postJson = await postResponse.json();
+                  console.log("Recent saved: ", postJson)
+    } catch (error) {
+      console.error("Failed to fetch route for recent: ", error);
+    }
+  };
   const { theme, colorScheme } = useTheme();
   const styles = createStyles(theme);
   
@@ -23,6 +83,32 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   const snapPoints = useMemo(() => ['11%', '40%', '87%'], []);
 
   const [distanceMetric, setDistanceMetric] = useState<string>("miles")
+  const [recents, setRecents] = useState<RecentItem[]>([]);
+  
+  useEffect(() => {
+    const fetchRecents = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/recents?limit=10`, {
+          headers: {
+            "X-User-Id": `${getAuth().currentUser!.uid}`,
+          },
+        });
+        const json = await res.json();
+        setRecents(json);
+      } catch (err) {
+        console.log("Error:", err);
+      }
+    };
+
+    fetchRecents(); // initial load
+
+    const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    console.log("🔁 recents state updated:", recents);
+  }, [recents]);
 
   const pinnedLocationsMap = {
     categories: [
@@ -77,91 +163,6 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       },
       {
         name: '6666',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-    ],
-  }
-
-  const recentsMap = {
-    categories: [
-      {
-        street: '432 Farmington Dr',
-        city_state: 'Plantation, Fl',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        street: '918 Westministr Dr',
-        city_state: 'Vermont',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        street: '345 Peachtree Rd',
-        city_state: 'Alabama',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        street: '1122 HoooYeee Ct',
-        city_state: 'Texas',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        street: '906 Leaftree Cr',
-        city_state: 'Vermont',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        street: '432 Farmington Dr',
-        city_state: 'Plantation, Fl',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        street: '918 Westministr Dr',
-        city_state: 'Vermont',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        street: '345 Peachtree Rd',
-        city_state: 'Alabama',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        street: '1122 HoooYeee Ct',
-        city_state: 'Texas',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        street: '906 Leaftree Cr',
-        city_state: 'Vermont',
         location: {
           latitude: 26.127987,
           longitude: -80.224480
@@ -289,18 +290,18 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
           style={styles.recents_container}
           contentContainerStyle={styles.recents_container_inner}>
 
-            {recentsMap.categories.slice(0, 20).map((category, index) => (
+            {recents.map((item, index) => (
               <TouchableOpacity 
               key={index}
-              onPress={handlePinnedLocationPress}
+              onPress={() => handleLocationPress(item)}
               activeOpacity={0.6} 
               style={styles.recent_item}>
                 <View style={styles.recent_icon_container}>
                   <Image style={styles.recent_icon} source={require("../../assets/location.png")}/>
                 </View>
                 <View  style={styles.recent_info}>
-                  <Text style={styles.text}>{category.street}</Text>
-                  <Text style={styles.text}>{category.city_state}</Text>
+                  <Text style={styles.text}>{item.label}</Text>
+                  <Text style={styles.text}>{item.address}</Text>
                 </View>
                 
               </TouchableOpacity>

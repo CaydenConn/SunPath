@@ -1,9 +1,10 @@
 import React, { useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from "react-native-google-places-autocomplete";
-import { GOOGLE_PLACES_API_KEY } from "@env";
+import { API_BASE_URL, GOOGLE_PLACES_API_KEY } from "@env";
 import polyline from "@mapbox/polyline";
 import { useTheme } from "../../styles/ThemeContext";
+import { getAuth } from "firebase/auth";
 
 
 type AddressSearchBarProps = {
@@ -52,8 +53,27 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
 
             const simplifiedRoute = routeCoords.filter((_, index) => index % 3 === 0);
             onRouteFetched(simplifiedRoute);
+
+            // Adds Searched Locations to Recents
+            const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-User-Id": `${getAuth().currentUser?.uid}`,
+                },
+                body: JSON.stringify({
+                    label: details.name ?? details.formatted_address ?? "",
+                    address: details.formatted_address ?? "", 
+                    lat: details.geometry.location.lat,
+                    lng: details.geometry.location.lng,
+                    place_id: details.place_id,
+                }),
+            });
+            const postJson = await postResponse.json();
+            console.log("Recent saved: ", postJson)
+
         } catch (error) {
-            console.error("Failed to fetch route:", error);
+            console.error("Failed to fetch route: ", error);
         }
     };
 
