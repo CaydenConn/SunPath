@@ -4,9 +4,10 @@ import { useTheme } from '../../styles/ThemeContext';
 
 type CenterButtonProps = {
   onPress: (event: GestureResponderEvent) => void;
+  addedStyle?: any;
 };
 
-export default function CenterButton({ onPress }: CenterButtonProps) {
+export default function CenterButton({ onPress, addedStyle }: CenterButtonProps) {
       const { theme, colorScheme, toggleTheme } = useTheme();
       const styles = createStyles(theme);
     
@@ -14,8 +15,9 @@ export default function CenterButton({ onPress }: CenterButtonProps) {
         <TouchableOpacity 
             activeOpacity={0.75}
             onPress={onPress}
+            style={addedStyle}
         >
-            <View style={styles.centerUserButton} >
+            <View style={styles.centerUserButton}>
                 <Image style={styles.centerUserButtonIcon} source={require("../../assets/center_on_user_icon.png")}/>
             </View>
         </TouchableOpacity>
@@ -25,9 +27,6 @@ export default function CenterButton({ onPress }: CenterButtonProps) {
 const createStyles = (theme : any) => 
     StyleSheet.create({
         centerUserButton: {
-            position: 'absolute',
-            bottom: 180,
-            right: 20,
             backgroundColor: theme.color,
             width: 50,
             height: 50,

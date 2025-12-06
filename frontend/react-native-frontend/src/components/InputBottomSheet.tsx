@@ -56,22 +56,22 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       onRouteFetched(simplifiedRoute);
 
       // Adds Searched Locations to Recents
-                  const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
-                      method: "POST",
-                      headers: {
-                          "Content-Type": "application/json",
-                          "X-User-Id": `${getAuth().currentUser?.uid}`,
-                      },
-                      body: JSON.stringify({
-                          label: item.label ?? item.address ?? "",
-                          address: item.address ?? "", 
-                          lat: item.lat,
-                          lng: item.lng,
-                          place_id: item.place_id,
-                      }),
-                  });
-                  const postJson = await postResponse.json();
-                  console.log("Recent saved: ", postJson)
+      const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+              "X-User-Id": `${getAuth().currentUser?.uid}`,
+          },
+          body: JSON.stringify({
+              label: item.label ?? item.address ?? "",
+              address: item.address ?? "", 
+              lat: item.lat,
+              lng: item.lng,
+              place_id: item.place_id,
+          }),
+      });
+      const postJson = await postResponse.json();
+      console.log("Recent saved: ", postJson)
     } catch (error) {
       console.error("Failed to fetch route for recent: ", error);
     }
@@ -85,6 +85,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   const [distanceMetric, setDistanceMetric] = useState<string>("miles")
   const [recents, setRecents] = useState<RecentItem[]>([]);
   
+  // Loads Recents
   useEffect(() => {
     const fetchRecents = async () => {
       try {
@@ -102,8 +103,8 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
 
     fetchRecents(); // initial load
 
-    const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
-    return () => clearInterval(interval);
+    // const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
+    return //() => clearInterval(interval);
   }, []);
 
   useEffect(() => {

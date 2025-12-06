@@ -55,7 +55,14 @@ export const COLORS = {
                 height: 4
             },
             elevation: 5,
-        }
+        },
+        //NAVIGTION HEADER
+        navigation_header: {
+            current_container_height: 170,
+
+            next_container_height: 50,
+            next_container_color: 'red',
+        },
     },
 
     dark: {
@@ -101,7 +108,25 @@ export const COLORS = {
                 height: 4
             },
             elevation: 5,
-        }
+        },
+        // NAVIGTION HEADER
+        navigation_header: {
+            height: 60,
+            padding: 7.5,
+            borderRadius: 10,
+            margin: 7,
+
+
+
+            shadowColor: 'black',
+            shadowOpacity: 0.35,
+            shadowRadius: 5,
+            shadowOffset: {
+                width: 0,
+                height: 4
+            },
+            elevation: 5,
+        },
     }
 
 }
