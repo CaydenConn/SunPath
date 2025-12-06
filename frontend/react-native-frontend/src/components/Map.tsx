@@ -18,7 +18,7 @@ export type MapRef = {
 };
 
 type MapProps = MapViewProps & {
-  routeCoordinates: { latitude: number; longitude: number }[];
+  routeCoordinates: { latitude: number; longitude: number }[] | null;
   destination?: { latitude: number; longitude: number } | null;
 };
 
@@ -90,7 +90,7 @@ const Map = forwardRef<MapRef, MapProps>(({ routeCoordinates = [], destination, 
       showsMyLocationButton={false}
     >
         {destination && <Marker coordinate={destination} title="Destination"/>}
-        {routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeWidth={4} strokeColor="blue" />}
+        {routeCoordinates && routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeWidth={6} strokeColor="blue" />}
     </MapView>
   );
 });

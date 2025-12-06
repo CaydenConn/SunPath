@@ -17,13 +17,22 @@ import NavigationPage from './src/screens/NavigationPage';
 type RootStackParam = {
   Login: undefined;
   Inside: undefined;
-  NavigationPage: undefined;
 };
 
 type InsideStackParam = {
   MainPage: undefined;
   SettingsPage: undefined;
-  NavigationPage: undefined;
+  NavigationPage: {
+    details: any;
+    destination: {
+        latitude: number,
+        longitude: number,
+    };
+    simplifiedRoute: { 
+        latitude: number;
+        longitude: number
+    }[] | null;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParam>();

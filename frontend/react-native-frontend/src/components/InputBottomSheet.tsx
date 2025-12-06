@@ -191,9 +191,9 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
             onRouteFetched={onRouteFetched}
             onDestinationSelected={(dest) => {
               onDestinationSelected?.(dest);
-              bottomSheetRef.current?.snapToIndex(1);
             }}
             onFocusExpandSheet={() => bottomSheetRef.current?.expand()}
+            bottomSheetRef={bottomSheetRef}
           />
 
         </View>

@@ -6,16 +6,35 @@ import { getDistance } from 'geolib';
 import polyline from "@mapbox/polyline";
 import AddressSearchBar from './AddressSearchBar';
 
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { API_BASE_URL, GOOGLE_PLACES_API_KEY } from "@env";
 import { getAuth } from 'firebase/auth';
 
-type NavigationBottomSheetProps = {
-  userLocation: { latitude: number; longitude: number } | null;
-  onRouteFetched: (coords: { latitude: number; longitude: number }[]) => void;
-  onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
+// type NavigationBottomSheetProps = {
+//   userLocation: { latitude: number; longitude: number } | null;
+//   onRouteFetched: (coords: { latitude: number; longitude: number }[]) => void;
+//   onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
+// };
+type InsideStackParam = {
+  MainPage: undefined;
+  NavigationPage: {
+    details: any;
+    destination: {
+        latitude: number,
+        longitude: number,
+    };
+    simplifiedRoute: { 
+        latitude: number;
+        longitude: number
+    }[] | null;
+  }
 };
 
-const NavigationBottomSheet: React.FC<NavigationBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, }) => {
+type NavigationProp = NativeStackNavigationProp<InsideStackParam>;
+
+const NavigationBottomSheet = () => {
  
   const { theme, colorScheme } = useTheme();
   const styles = createStyles(theme);
@@ -23,8 +42,12 @@ const NavigationBottomSheet: React.FC<NavigationBottomSheetProps> = ({ userLocat
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['14%'], []);
 
-  const [distanceMetric, setDistanceMetric] = useState<string>("miles")
+  const navigation = useNavigation<NavigationProp>();
 
+  const [distanceMetric, setDistanceMetric] = useState<string>("miles")
+  const handleEndPressed = () => {
+    navigation.pop();
+  }
   return (
     <BottomSheet 
     ref={bottomSheetRef}
@@ -39,8 +62,13 @@ const NavigationBottomSheet: React.FC<NavigationBottomSheetProps> = ({ userLocat
     >
       <BottomSheetView style={styles.content}>
         <View>
-          <Text>Hello</Text>
+          <Text style={styles.sheet_title}>ETA, Time + Distance Remaining</Text>
         </View>
+        <TouchableOpacity
+        onPress={handleEndPressed}
+        style={styles.end_button}>
+          <Text style={styles.sheet_title}>END</Text>
+        </TouchableOpacity>
 
       </BottomSheetView>
     </BottomSheet>
@@ -69,91 +97,9 @@ const createStyles = (theme : any) =>
       fontWeight: 'bold',
       fontSize: 16
     },
-    pinned_locations: {
-      flexDirection: 'column',
+    end_button: {
+      backgroundColor: 'coral'
     },
-    pinned_locations_container: {
-      height: 120,
-      borderRadius: 10,
-      backgroundColor: theme.sheetShading1,
-    },
-    pinned_locations_container_inner: {
-      justifyContent: "center",
-      alignItems: 'center',
-      paddingHorizontal: 5,
-    },
-    pinned_item: {
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    pinned_icon_container: {
-      flexDirection:"column",
-      backgroundColor: theme.sheetShading2, 
-      borderRadius:30,
-      justifyContent: 'center',
-      alignItems: 'center',
-      width: 80,
-      marginHorizontal:10,
-      height:65,
-      zIndex: 1,
-    },
-    pinned_icon: {
-      height: 45,
-      width: 45,
-    },
-    add_icon: {
-      height: 25,
-      width: 25,
-    },
-    recents: {
-      flexDirection: 'column',
-    },
-    recents_container: {
-      borderRadius: 10,
-      backgroundColor: theme.sheetShading1,
-      height: 500,
-    },
-    recents_container_inner: {
-      justifyContent: "center",
-      alignItems: 'center',
-    },
-    recent_item: {
-      flexDirection: 'row',
-      width: '100%',
-      borderColor: theme.sheetShading2,
-      borderBottomWidth: 1,
-      justifyContent: 'center',
-      paddingVertical: 10,
-    },
-    recent_icon_container: {
-      flexDirection:"column",
-      backgroundColor: theme.sheetShading2, 
-      borderRadius:30,
-      justifyContent: 'center',
-      alignItems: 'center',
-      width: 50,
-      height:50,
-      marginHorizontal: 4,
-      zIndex: 1,
-    },
-    recent_icon: {
-      height: 30,
-      width: 30,
-    },
-    recent_info: {
-      flexDirection: 'column',
-      flex: 1,
-      justifyContent: 'center',
-    },
-    text: {
-      color: theme.textColor,
-      fontSize: 14,
-    },
-    sub_text: {
-      color: theme.textColor,
-      fontSize: 13,
-    }
 });
 
 export default NavigationBottomSheet;

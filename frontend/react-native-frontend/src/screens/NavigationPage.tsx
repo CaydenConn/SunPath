@@ -10,26 +10,39 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import NavigationBottomSheet from '../components/NavigationBottomSheet';
+import polyline from "@mapbox/polyline";
 
 import * as Location from 'expo-location';
+import { API_BASE_URL, GOOGLE_PLACES_API_KEY } from '@env';
+import { getAuth } from 'firebase/auth';
 
 // Define your navigation stack types 
-type RootStackParamList = {
-  NavigationPage: undefined;
+type InsideStackParam = {
+    MainPage: undefined;
+    NavigationPage: {
+        details: any;
+        destination: {
+            latitude: number,
+            longitude: number,
+        };
+        simplifiedRoute: { 
+            latitude: number;
+            longitude: number
+        }[] | null;
+    };
   // Add other screens if needed
 };
 
 // Props for NavigationPage
 type NavigationPageProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'NavigationPage'>;
-  route: RouteProp<RootStackParamList, 'NavigationPage'>;
+  navigation: NativeStackNavigationProp<InsideStackParam, 'NavigationPage'>;
+  route: RouteProp<InsideStackParam, 'NavigationPage'>;
 };
 
-const NavigationPage : React.FC<NavigationPageProps> = ({ navigation }) => {
+const NavigationPage : React.FC<NavigationPageProps> = ({ route }) => {
+    const { details, destination, simplifiedRoute } = route.params;
 
     const mapRef = useRef<MapRef>(null);
-    const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
-    const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
     const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
     useEffect(() => {
@@ -48,8 +61,8 @@ const NavigationPage : React.FC<NavigationPageProps> = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <NavigationHeader userLocation={userLocation}></NavigationHeader>
-            <Map ref={mapRef} routeCoordinates={routeCoordinates} destination={destination}/>
-            <NavigationBottomSheet userLocation={userLocation} onRouteFetched={setRouteCoordinates} onDestinationSelected={setDestination}></NavigationBottomSheet>
+            <Map ref={mapRef} routeCoordinates={simplifiedRoute} destination={destination}/>
+            <NavigationBottomSheet></NavigationBottomSheet>
             <CenterButton addedStyle={styles.centerUserButton} onPress={handleCenter}/>
         </View>
     );

@@ -28,14 +28,14 @@ export default function NavigationHeader({ userLocation }: NavigationHeaderProps
                         paddingRight: insets.right,
                     }
                 ]}>
-                    <Text>Weather Data Unavailable</Text>
+                    <Text>Current Direction</Text>
                 </View>  
             </View>
 
             <View style={styles.next_direction_container}>
             {/* Weather Data */}
                 <View style={styles.weather_box}>
-                    <Text>Weather Data Unavailable</Text>
+                    <Text>Next Direction</Text>
                 </View>  
             </View>
         </View>
@@ -71,7 +71,6 @@ const createStyles = (theme : any) =>
     },
     next_direction_container: {
         flexDirection: 'row',
-        backgroundColor: theme.color,
         height: theme.navigation_header.next_container_height,
         backgroundColor: theme.navigation_header.next_container_color,
     },
