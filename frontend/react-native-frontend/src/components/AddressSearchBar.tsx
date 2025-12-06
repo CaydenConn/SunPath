@@ -81,7 +81,8 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
                 }))
             );
 
-            const simplifiedRoute = routeCoords.filter((_, index) => index % 3 === 0);
+            // const simplifiedRoute = routeCoords.filter((_, index) => index % 2 === 0);
+            const simplifiedRoute = routeCoords
             // Navigate to the NavPage + Pass all relevent data
             navigation.navigate('NavigationPage', {
                 details,

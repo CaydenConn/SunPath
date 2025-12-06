@@ -15,45 +15,33 @@ type UserLocation = {
 // Type for the ref object exposed via forwardRef
 export type MapRef = {
   centerOnUser: () => void;
+  centerOnUserNav: () => void;
 };
 
 type MapProps = MapViewProps & {
+  navigationMode?: boolean;
   routeCoordinates: { latitude: number; longitude: number }[] | null;
   destination?: { latitude: number; longitude: number } | null;
+  initialRegion?: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  };
+  initialCamera?: {
+    center: { latitude: number; longitude: number };
+    pitch: number;
+    heading: number;
+    altitude: number;
+  };
+  userLocation?: UserLocation | null;
 };
 
-const Map = forwardRef<MapRef, MapProps>(({ routeCoordinates = [], destination, ...props }, ref) => {
+const Map = forwardRef<MapRef, MapProps>(({ routeCoordinates = [], destination, initialCamera, initialRegion, userLocation, navigationMode, ...props },  ref) => {
     const { colorScheme } = useTheme();
   
     // State for user-added markers
-    const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
     const mapRef = useRef<MapView>(null);
-
-  // Get user location on component mount
-    useEffect(() => {
-      (async () => {
-            try {
-                // Request location permissions
-                let { status } = await Location.requestForegroundPermissionsAsync();
-                if (status !== 'granted') {
-                    Alert.alert('Permission Denied', 'Location permission is required to show your position');
-                    return;
-                }
-
-                // Get current location
-                let location = await Location.getCurrentPositionAsync({});
-                setUserLocation({
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                });
-
-                console.log('User location:', location.coords);
-            } catch (error) {
-                console.error('Error getting location:', error);
-                Alert.alert('Location Error', 'Could not get your location');
-            }
-        })();
-    }, []);
 
   // Center map on user location
   const centerOnUser = () => {
@@ -69,7 +57,23 @@ const Map = forwardRef<MapRef, MapProps>(({ routeCoordinates = [], destination, 
       }
   };
 
-  useImperativeHandle(ref, () => ({ centerOnUser }));
+   const centerOnUserNav = () => {
+      if (initialCamera && mapRef.current) {
+        mapRef.current.animateCamera({
+          center: {
+            latitude: initialCamera.center.latitude,
+            longitude: initialCamera.center.longitude,
+          },
+          pitch: initialCamera.pitch,        // 3D tilt
+          heading: initialCamera.heading,       // Or use compass heading
+          altitude: initialCamera.altitude,    // Lower = more zoomed-in
+        }, { duration: 600 });
+      } else {
+          Alert.alert('Location Not Available', 'Your location is not available yet');
+      }
+  };
+
+  useImperativeHandle(ref, () => ({ centerOnUser, centerOnUserNav }));
 
   return (
     <MapView
@@ -80,17 +84,13 @@ const Map = forwardRef<MapRef, MapProps>(({ routeCoordinates = [], destination, 
         : MAP.dark
       }
       style={styles.map}
-      initialRegion={{
-          latitude: 30.4383,
-          longitude: -84.2807,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-      }}
+      initialRegion={!navigationMode ? initialRegion : undefined}
+      initialCamera={navigationMode ? initialCamera : undefined}
       showsUserLocation={true}
       showsMyLocationButton={false}
     >
         {destination && <Marker coordinate={destination} title="Destination"/>}
-        {routeCoordinates && routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeWidth={6} strokeColor="blue" />}
+        {routeCoordinates && routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeWidth={9} strokeColor="blue" />}
     </MapView>
   );
 });

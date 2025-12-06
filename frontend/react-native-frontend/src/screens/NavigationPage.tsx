@@ -33,6 +33,11 @@ type InsideStackParam = {
   // Add other screens if needed
 };
 
+type UserLocation = {
+  latitude: number;
+  longitude: number;
+};
+
 // Props for NavigationPage
 type NavigationPageProps = {
   navigation: NativeStackNavigationProp<InsideStackParam, 'NavigationPage'>;
@@ -43,25 +48,53 @@ const NavigationPage : React.FC<NavigationPageProps> = ({ route }) => {
     const { details, destination, simplifiedRoute } = route.params;
 
     const mapRef = useRef<MapRef>(null);
-    const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-
+    const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+    const [initialCamera, setInitialCamera] = useState({
+        center: {
+            latitude: destination.latitude,
+            longitude: destination.longitude,
+        },
+        pitch: 55,      // Navigation tilt
+        heading: 0,     // Can update later with compass
+        altitude: 220,  // Navigation zoom level
+    });
     useEffect(() => {
         (async () => {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== "granted") return;
             const loc = await Location.getCurrentPositionAsync({});
-            setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-            })();
+            setUserLocation({ 
+                latitude: loc.coords.latitude, 
+                longitude: loc.coords.longitude 
+            });
+            setInitialCamera({
+                center: {
+                    latitude: loc.coords.latitude,
+                    longitude: loc.coords.longitude,
+                },
+                pitch: 20,
+                heading: 0,
+                altitude: 275,
+            });
+            setTimeout(() => {
+                handleCenter();
+            }, 200);
+        })();
     }, []);
 
     const handleCenter = (): void => {
-        mapRef.current?.centerOnUser();
+        mapRef.current?.centerOnUserNav();
     };
 
     return (
         <View style={styles.container}>
             <NavigationHeader userLocation={userLocation}></NavigationHeader>
-            <Map ref={mapRef} routeCoordinates={simplifiedRoute} destination={destination}/>
+            <Map ref={mapRef}
+                navigationMode={true} 
+                initialCamera={initialCamera} 
+                routeCoordinates={simplifiedRoute} 
+                destination={destination}
+                userLocation={userLocation}/>
             <NavigationBottomSheet></NavigationBottomSheet>
             <CenterButton addedStyle={styles.centerUserButton} onPress={handleCenter}/>
         </View>

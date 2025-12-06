@@ -31,6 +31,12 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
     const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
     const [destination, setDestination] = useState<{ latitude: number; longitude: number } | null>(null);
     const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+    const [initialRegion, setInitialRegion] = useState({
+        latitude: 30.4383,
+        longitude: -84.2807,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+    });
 
     useEffect(() => {
         (async () => {
@@ -42,13 +48,18 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
     }, []);
 
     const handleCenter = (): void => {
-        mapRef.current?.centerOnUser();
+        mapRef.current?.centerOnUserNav();
     };
 
     return (
         <View style={styles.container}>
             <Header userLocation={userLocation}/>
-            <Map ref={mapRef} routeCoordinates={routeCoordinates} destination={destination}/>
+            <Map ref={mapRef}
+                navigationMode={false} 
+                initialRegion={initialRegion} 
+                routeCoordinates={routeCoordinates} 
+                destination={destination}
+                userLocation={userLocation}/>
             <CenterButton addedStyle={styles.centerUserButton} onPress={handleCenter}/>
             <InputBottomSheet userLocation={userLocation} onRouteFetched={setRouteCoordinates} onDestinationSelected={setDestination}/>
             {/* Logout button */}
