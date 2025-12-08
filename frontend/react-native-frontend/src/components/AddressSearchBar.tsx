@@ -18,7 +18,17 @@ type AddressSearchBarProps = {
     onFocusExpandSheet?: () => void;
     bottomSheetRef?: React.RefObject<BottomSheetMethods | null>;
 };
-
+type Step = {
+    html_instructions: string;
+    end_location: {
+        lat: number;
+        lng: number;
+    };
+    polyline: {
+        points: string;
+    };
+    maneuver: string;
+};
 type InsideStackParam = {
   MainPage: undefined;
   NavigationPage: {
@@ -31,6 +41,13 @@ type InsideStackParam = {
         latitude: number;
         longitude: number
     }[] | null;
+    etaDetails: {
+        etaText: string,
+        etaSeconds: number,
+        distanceText: string,
+        distanceMeters: number,
+    };
+    steps: Step[];
   }
 };
 type NavigationProp = NativeStackNavigationProp<InsideStackParam>;
@@ -67,27 +84,29 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
             const dataJson = await response.json();
             if (!dataJson.routes?.length) return;
 
-            type Step = {
-                polyline: {
-                    points: string;
-                };
-            };
-
-            const steps: Step[] = dataJson.routes[0].legs[0].steps;
+            const leg = dataJson.routes[0].legs[0]
+            const steps: Step[] = leg.steps;
             const routeCoords = steps.flatMap((step: Step) =>
                 polyline.decode(step.polyline.points).map((p: [number, number]) => ({
                     latitude: p[0],
                     longitude: p[1],
                 }))
             );
-
             // const simplifiedRoute = routeCoords.filter((_, index) => index % 2 === 0);
             const simplifiedRoute = routeCoords
+            
             // Navigate to the NavPage + Pass all relevent data
             navigation.navigate('NavigationPage', {
                 details,
                 destination,
                 simplifiedRoute: simplifiedRoute, 
+                etaDetails: {
+                    etaText: leg.duration.text,
+                    etaSeconds: leg.duration.value,
+                    distanceText: leg.distance.text,
+                    distanceMeters: leg.distance.value,
+                },
+                steps: dataJson.routes[0].legs[0].steps
             });
 
             // Notify parent(this -> InputBottomSheet -> Map) if callback exists

@@ -22,19 +22,34 @@ type InsideStackParam = {
   NavigationPage: {
     details: any;
     destination: {
-        latitude: number,
-        longitude: number,
+      latitude: number,
+      longitude: number,
     };
     simplifiedRoute: { 
-        latitude: number;
-        longitude: number
+      latitude: number;
+      longitude: number
     }[] | null;
+    etaDetails: {
+      etaText: string,
+      etaSeconds: number,
+      distanceText: string,
+      distanceMeters: number,
+    }
   }
 };
 
 type NavigationProp = NativeStackNavigationProp<InsideStackParam>;
 
-const NavigationBottomSheet = () => {
+type NavBottomSheetProps = {
+  etaDetails: {
+      etaText: string,
+      etaSeconds: number,
+      distanceText: string,
+      distanceMeters: number,
+  };
+}
+
+const NavigationBottomSheet : React.FC<NavBottomSheetProps> = ({ etaDetails }) => {
  
   const { theme, colorScheme } = useTheme();
   const styles = createStyles(theme);
@@ -48,6 +63,23 @@ const NavigationBottomSheet = () => {
   const handleEndPressed = () => {
     navigation.pop();
   }
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+  // Gets Current Time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000); // updates every second
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const arrivalDate = new Date(currentTime.getTime() + etaDetails.etaSeconds * 1000); // convert seconds → ms
+  const arrivalHoursMilitary = arrivalDate.getHours();
+  var arrivalHoursRegular = arrivalHoursMilitary % 12;
+  arrivalHoursRegular = arrivalHoursRegular === 0 ? 12 : arrivalHoursRegular; // Goes away from military time
+  const arrivalMinutes = arrivalDate.getMinutes().toString().padStart(2, '0'); // always 2 digits
+  const arrivalTime = `${arrivalHoursRegular}:${arrivalMinutes}`;
   return (
     <BottomSheet 
     ref={bottomSheetRef}
@@ -61,13 +93,44 @@ const NavigationBottomSheet = () => {
     backgroundStyle={{ backgroundColor: theme.color }}
     >
       <BottomSheetView style={styles.content}>
-        <View>
-          <Text style={styles.sheet_title}>ETA, Time + Distance Remaining</Text>
-        </View>
+          <View style={styles.navitem_container}>
+            <Text style={styles.sheet_title}>{arrivalTime}</Text>
+            <Text style={styles.sheet_desc}>arrival</Text>
+          </View>
+          {
+            Math.floor(etaDetails.etaSeconds / 60 / 60 / 24) != 0 && (
+              <View style={styles.navitem_container}>
+                <Text style={styles.sheet_title}> {Math.floor(etaDetails.etaSeconds / 60 / 60 / 24)}:{Math.round(etaDetails.etaSeconds / 60 / 60 % 24)}</Text>
+                <Text style={styles.sheet_desc}>days</Text>
+              </View>
+            )
+          }
+          {
+            Math.floor(etaDetails.etaSeconds / 60 / 60) < 24 && Math.floor(etaDetails.etaSeconds / 60 / 60) > 0 && (
+              <View style={styles.navitem_container}>
+                <Text style={styles.sheet_title}> {Math.floor(etaDetails.etaSeconds / 60 / 60)}:{Math.round(etaDetails.etaSeconds / 60 % 60)}</Text>
+                <Text style={styles.sheet_desc}>hrs</Text>
+              </View>
+            )
+          }
+          {
+            Math.floor(etaDetails.etaSeconds / 60) < 60 && (
+              <View style={styles.navitem_container}>
+                <Text style={styles.sheet_title}> {Math.floor(etaDetails.etaSeconds / 60)}</Text>
+                <Text style={styles.sheet_desc}>mins</Text>
+              </View>
+            )
+          }
+          
+          <View style={styles.navitem_container}>
+            <Text style={styles.sheet_title}>{(etaDetails.distanceMeters / 1609).toFixed(1)}</Text>
+            <Text style={styles.sheet_desc}>mi</Text>
+          </View>
+          
         <TouchableOpacity
         onPress={handleEndPressed}
         style={styles.end_button}>
-          <Text style={styles.sheet_title}>END</Text>
+          <Text style={[styles.sheet_title, styles.end_button_text]}>End Route</Text>
         </TouchableOpacity>
 
       </BottomSheetView>
@@ -88,18 +151,38 @@ const createStyles = (theme : any) =>
     },
     content: {
       flex: 1,
-      padding: 16,
+      padding: 12,
+      paddingTop: 20,
+      flexDirection: 'row',
+      
+    },
+    navitem_container: {
+      flex: 1,
       flexDirection: 'column',
-      gap: 15,
+      justifyContent: 'center',
     },
     sheet_title: {
       color: theme.textColor,
       fontWeight: 'bold',
-      fontSize: 16
+      fontSize: 20
+    },
+    sheet_desc: {
+      color: theme.descTextColor,
+      fontSize: 16,
+
     },
     end_button: {
-      backgroundColor: 'coral'
+      backgroundColor: 'red',
+      width: 125,
+      height: 60,
+      borderRadius: theme.header.borderRadius,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
+    end_button_text: {
+      color: 'white',
+    }
+
 });
 
 export default NavigationBottomSheet;

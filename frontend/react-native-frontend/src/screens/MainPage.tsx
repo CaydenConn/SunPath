@@ -48,7 +48,7 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
     }, []);
 
     const handleCenter = (): void => {
-        mapRef.current?.centerOnUserNav();
+        mapRef.current?.centerOnUser();
     };
 
     return (
@@ -59,7 +59,9 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
                 initialRegion={initialRegion} 
                 routeCoordinates={routeCoordinates} 
                 destination={destination}
-                userLocation={userLocation}/>
+                userLocation={userLocation}
+                showDefaultUserIcon={true}
+                />
             <CenterButton addedStyle={styles.centerUserButton} onPress={handleCenter}/>
             <InputBottomSheet userLocation={userLocation} onRouteFetched={setRouteCoordinates} onDestinationSelected={setDestination}/>
             {/* Logout button */}
