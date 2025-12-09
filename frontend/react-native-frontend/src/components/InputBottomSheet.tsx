@@ -8,13 +8,59 @@ import AddressSearchBar from './AddressSearchBar';
 
 import { API_BASE_URL, GOOGLE_PLACES_API_KEY } from "@env";
 import { getAuth } from 'firebase/auth';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
 
 type InputBottomSheetProps = {
   userLocation: { latitude: number; longitude: number } | null;
   onRouteFetched: (coords: { latitude: number; longitude: number }[]) => void;
   onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
 };
-
+type Step = {
+    html_instructions: string;
+    end_location: {
+        lat: number;
+        lng: number;
+    };
+    start_location: {
+        lat: number;
+        lng: number;
+    };
+    polyline: {
+        points: string;
+    };
+    maneuver?: string;
+    duration: {
+        text: string;
+        value: number;
+    };
+    distance: {
+        text: string;
+        value: number;
+    };
+};
+type InsideStackParam = {
+  MainPage: undefined;
+  NavigationPage: {
+    details: any;
+    destination: {
+        latitude: number,
+        longitude: number,
+    };
+    simplifiedRoute: { 
+        latitude: number;
+        longitude: number
+    }[] | null;
+    etaDetails: {
+        etaText: string,
+        etaSeconds: number,
+        distanceText: string,
+        distanceMeters: number,
+    };
+    steps: Step[];
+  }
+};
+type NavigationProp = NativeStackNavigationProp<InsideStackParam>;
 type RecentItem = {
   label: string;
   address: string;
@@ -24,57 +70,78 @@ type RecentItem = {
   ts?: string;
 };
 const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, }) => {
+  const navigation = useNavigation<NavigationProp>();
   const handlePinnedLocationPress = (): void => {
       console.log("Favorite Pressed");
   };
   const handleLocationPress = async (item: RecentItem) => {
     if (!userLocation) return;
-    bottomSheetRef.current?.snapToIndex(1);
-    const destination = { latitude: item.lat, longitude: item.lng };
-    
-    // Notify parent about destination selection
-    onDestinationSelected?.(destination);
+    const destination = {
+            latitude: item.lat,
+            longitude: item.lng,
+        };
+
+        if (bottomSheetRef?.current) {
+            setTimeout(() => {
+                bottomSheetRef.current?.snapToIndex(1);
+            }, 50);
+        }
 
     // Fetch route to destination (same as AddressSearchBar)
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/directions/json?origin=${userLocation.latitude},${userLocation.longitude}&destination=${destination.latitude},${destination.longitude}&key=${GOOGLE_PLACES_API_KEY}`
+          `https://maps.googleapis.com/maps/api/directions/json?origin=${userLocation.latitude},${userLocation.longitude}&destination=${destination.latitude},${destination.longitude}&key=${GOOGLE_PLACES_API_KEY}`
       );
+
       const dataJson = await response.json();
       if (!dataJson.routes?.length) return;
 
-      const routeCoords: { latitude: number; longitude: number }[] = [];
-      const steps = dataJson.routes[0].legs[0].steps;
-      for (const step of steps) {
-        const stepPoints = polyline.decode(step.polyline.points);
-        stepPoints.forEach((p: number[]) =>
-          routeCoords.push({ latitude: p[0], longitude: p[1] })
-        );
-      }
-
-      const simplifiedRoute = routeCoords.filter((_, index) => index % 3 === 0);
-      onRouteFetched(simplifiedRoute);
+      const leg = dataJson.routes[0].legs[0]
+      const steps: Step[] = leg.steps;
+      const routeCoords = steps.flatMap((step: Step) =>
+          polyline.decode(step.polyline.points).map((p: [number, number]) => ({
+              latitude: p[0],
+              longitude: p[1],
+          }))
+      );
+      // const simplifiedRoute = routeCoords.filter((_, index) => index % 2 === 0);
+      const simplifiedRoute = routeCoords
+      
+      // Navigate to the NavPage + Pass all relevent data
+      navigation.navigate('NavigationPage', {
+          details: item,
+          destination,
+          simplifiedRoute: simplifiedRoute, 
+          etaDetails: {
+              etaText: leg.duration.text,
+              etaSeconds: leg.duration.value,
+              distanceText: leg.distance.text,
+              distanceMeters: leg.distance.value,
+          },
+          steps: dataJson.routes[0].legs[0].steps
+      });
 
       // Adds Searched Locations to Recents
-                  const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
-                      method: "POST",
-                      headers: {
-                          "Content-Type": "application/json",
-                          "X-User-Id": `${getAuth().currentUser?.uid}`,
-                      },
-                      body: JSON.stringify({
-                          label: item.label ?? item.address ?? "",
-                          address: item.address ?? "", 
-                          lat: item.lat,
-                          lng: item.lng,
-                          place_id: item.place_id,
-                      }),
-                  });
-                  const postJson = await postResponse.json();
-                  console.log("Recent saved: ", postJson)
-    } catch (error) {
-      console.error("Failed to fetch route for recent: ", error);
-    }
+      const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+              "X-User-Id": `${getAuth().currentUser?.uid}`,
+          },
+          body: JSON.stringify({
+              label: item.label ?? "",
+              address: item.address ?? "", 
+              lat: item.lat,
+              lng: item.lng,
+              place_id: item.place_id,
+          }),
+      });
+      const postJson = await postResponse.json();
+      console.log("Recent saved: ", postJson)
+
+  } catch (error) {
+      console.error("Failed to fetch route: ", error);
+  }
   };
   const { theme, colorScheme } = useTheme();
   const styles = createStyles(theme);
@@ -85,6 +152,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   const [distanceMetric, setDistanceMetric] = useState<string>("miles")
   const [recents, setRecents] = useState<RecentItem[]>([]);
   
+  // Loads Recents
   useEffect(() => {
     const fetchRecents = async () => {
       try {
@@ -102,8 +170,8 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
 
     fetchRecents(); // initial load
 
-    const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
-    return () => clearInterval(interval);
+    // const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
+    return //() => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -190,9 +258,9 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
             onRouteFetched={onRouteFetched}
             onDestinationSelected={(dest) => {
               onDestinationSelected?.(dest);
-              bottomSheetRef.current?.snapToIndex(1);
             }}
             onFocusExpandSheet={() => bottomSheetRef.current?.expand()}
+            bottomSheetRef={bottomSheetRef}
           />
 
         </View>

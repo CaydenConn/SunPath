@@ -2,12 +2,17 @@ const lightBackground = "#ffffffff";
 const darkBackground = "black";
 
 const lightTextColor = 'black'
+const descTextColor = 'grey'
 const darkTextColor = 'white'
+
 
 const lightSheetShading1 = '#F2F2F2'
 const lightSheetShading2 = '#D9D9D9'
 const darkSheetShading1 = '#1A1A1A'
 const darkSheetShading2 = '#333333'
+
+const navHeader1 = darkSheetShading1
+const navHeader2 = '#555555'
 
 // GLOBAL COLORS
 export const COLORS = {
@@ -15,6 +20,7 @@ export const COLORS = {
     light: {
         color: lightBackground,
         textColor: lightTextColor,
+        descTextColor: descTextColor,
         sheetShading1: lightSheetShading1,
         sheetShading2: lightSheetShading2,
         // HEADER
@@ -55,12 +61,23 @@ export const COLORS = {
                 height: 4
             },
             elevation: 5,
-        }
+        },
+        //NAVIGTION HEADER
+        navigation_header: {
+            current_container_height: 170,
+            current_container_color: navHeader1,
+            
+            text_color: darkTextColor,
+
+            next_container_height: 50,
+            next_container_color: navHeader2,
+        },
     },
 
     dark: {
         color: darkBackground,
         textColor: darkTextColor,
+        descTextColor: descTextColor,
         sheetShading1: darkSheetShading1,
         sheetShading2: darkSheetShading2,
         // HEADER
@@ -101,7 +118,17 @@ export const COLORS = {
                 height: 4
             },
             elevation: 5,
-        }
+        },
+        //NAVIGTION HEADER
+        navigation_header: {
+            current_container_height: 170,
+            current_container_color: navHeader1,
+
+            text_color: darkTextColor,
+
+            next_container_height: 50,
+            next_container_color: navHeader2,
+        },
     }
 
 }

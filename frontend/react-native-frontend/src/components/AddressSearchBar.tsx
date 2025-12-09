@@ -5,7 +5,10 @@ import { API_BASE_URL, GOOGLE_PLACES_API_KEY } from "@env";
 import polyline from "@mapbox/polyline";
 import { useTheme } from "../../styles/ThemeContext";
 import { getAuth } from "firebase/auth";
+import BottomSheetMethods from '@gorhom/bottom-sheet';
 
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type AddressSearchBarProps = {
     userLocation: { latitude: number; longitude: number } | null;
@@ -13,12 +16,61 @@ type AddressSearchBarProps = {
     onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
     onPress?: (data: any, details: any) => void;
     onFocusExpandSheet?: () => void;
+    bottomSheetRef?: React.RefObject<BottomSheetMethods | null>;
 };
+type Step = {
+    html_instructions: string;
+    end_location: {
+        lat: number;
+        lng: number;
+    };
+    start_location: {
+        lat: number;
+        lng: number;
+    };
+    polyline: {
+        points: string;
+    };
+    maneuver?: string;
+    duration: {
+        text: string;
+        value: number;
+    };
+    distance: {
+        text: string;
+        value: number;
+    };
+};
+type InsideStackParam = {
+  MainPage: undefined;
+  NavigationPage: {
+    details: any;
+    destination: {
+        latitude: number,
+        longitude: number,
+    };
+    simplifiedRoute: { 
+        latitude: number;
+        longitude: number
+    }[] | null;
+    etaDetails: {
+        etaText: string,
+        etaSeconds: number,
+        distanceText: string,
+        distanceMeters: number,
+    };
+    steps: Step[];
+  }
+};
+type NavigationProp = NativeStackNavigationProp<InsideStackParam>;
 
-const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRouteFetched, onDestinationSelected, onPress, onFocusExpandSheet, }) => {
+
+const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRouteFetched, onDestinationSelected, onPress, onFocusExpandSheet, bottomSheetRef }) => {
     const { theme, colorScheme, toggleTheme } = useTheme();
     const styles = createStyles(theme);
-    
+
+    const navigation = useNavigation<NavigationProp>();
+
     const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
     const handlePlaceSelect = async (data: any, details: any) => {
         placesRef.current?.blur();
@@ -29,10 +81,11 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
             longitude: details.geometry.location.lng,
         };
 
-        onDestinationSelected?.(destination);
-
-        // Notify parent if callback exists
-        onPress?.(data, details);
+        if (bottomSheetRef?.current) {
+            setTimeout(() => {
+                bottomSheetRef.current?.snapToIndex(1);
+            }, 50);
+        }
 
         // Fetch route from Google Directions API
         try {
@@ -43,17 +96,31 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
             const dataJson = await response.json();
             if (!dataJson.routes?.length) return;
 
-            const routeCoords: { latitude: number; longitude: number }[] = [];
-
-            const steps = dataJson.routes[0].legs[0].steps;
-            for (const step of steps) {
-            const stepPoints = polyline.decode(step.polyline.points);
-            stepPoints.forEach((p: number[]) => routeCoords.push({ latitude: p[0], longitude: p[1] }));
-            }
-
-            const simplifiedRoute = routeCoords.filter((_, index) => index % 3 === 0);
-            onRouteFetched(simplifiedRoute);
-
+            const leg = dataJson.routes[0].legs[0]
+            const steps: Step[] = leg.steps;
+            const routeCoords = steps.flatMap((step: Step) =>
+                polyline.decode(step.polyline.points).map((p: [number, number]) => ({
+                    latitude: p[0],
+                    longitude: p[1],
+                }))
+            );
+            // const simplifiedRoute = routeCoords.filter((_, index) => index % 2 === 0);
+            const simplifiedRoute = routeCoords
+            
+            // Navigate to the NavPage + Pass all relevent data
+            navigation.navigate('NavigationPage', {
+                details,
+                destination,
+                simplifiedRoute: simplifiedRoute, 
+                etaDetails: {
+                    etaText: leg.duration.text,
+                    etaSeconds: leg.duration.value,
+                    distanceText: leg.distance.text,
+                    distanceMeters: leg.distance.value,
+                },
+                steps: dataJson.routes[0].legs[0].steps
+            });
+  
             // Adds Searched Locations to Recents
             const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
                 method: "POST",
@@ -72,9 +139,13 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
             const postJson = await postResponse.json();
             console.log("Recent saved: ", postJson)
 
+            placesRef.current?.setAddressText('');
         } catch (error) {
             console.error("Failed to fetch route: ", error);
         }
+        
+
+        // TO HERE
     };
 
     if (!GOOGLE_PLACES_API_KEY) return null;
