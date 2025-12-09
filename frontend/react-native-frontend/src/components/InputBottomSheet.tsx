@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Text, StyleSheet, TouchableOpacity, View, Image } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, View, Image, Touchable } from 'react-native';
 import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useTheme } from '../../styles/ThemeContext';
 import { getDistance } from 'geolib';
@@ -139,10 +139,33 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       const postJson = await postResponse.json();
       console.log("Recent saved: ", postJson)
 
-  } catch (error) {
-      console.error("Failed to fetch route: ", error);
-  }
+    } catch (error) {
+        console.error("Failed to fetch route: ", error);
+    }
   };
+  const handleRemoveSpecificRecent = async (item: any) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/recents`)
+    } catch(error){
+      console.log("Failed to delete recent item: ", error)
+    }
+  }
+  const handleRemoveAllRecents = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/recents`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "X-User-Id": `${getAuth().currentUser?.uid}`,
+        },
+      })
+      const result = await res.json();
+      console.log('Deleted successfully:', result);
+      fetchRecents();
+    } catch (error) {
+      console.error("Failed to delet recents: ", error);
+    }
+  }
   const { theme, colorScheme } = useTheme();
   const styles = createStyles(theme);
   
@@ -151,10 +174,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
 
   const [distanceMetric, setDistanceMetric] = useState<string>("miles")
   const [recents, setRecents] = useState<RecentItem[]>([]);
-  
-  // Loads Recents
-  useEffect(() => {
-    const fetchRecents = async () => {
+  const fetchRecents = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/recents?limit=10`, {
           headers: {
@@ -167,11 +187,11 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
         console.log("Error:", err);
       }
     };
-
+  // Loads Recents
+  useEffect(() => {
     fetchRecents(); // initial load
-
-    // const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
-    return //() => clearInterval(interval);
+    const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -250,6 +270,9 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
     enableContentPanningGesture={false}
     style={styles.sheet}
     backgroundStyle={{ backgroundColor: theme.color }}
+    handleIndicatorStyle={{
+      backgroundColor: colorScheme === 'light' ? 'black' : 'white',
+    }}
     >
       <BottomSheetView style={styles.content}>
         <View>
@@ -266,7 +289,13 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
         </View>
         {/* PINNED LOCATIONS */}
         <View style={styles.pinned_locations}>
-          <Text style={styles.sheet_title}>Pinned Locations📍</Text>
+          <View style={styles.title_container}>
+            <Text style={styles.sheet_title}>Pinned Locations📍</Text>
+            <TouchableOpacity onPress={handleRemoveAllRecents}>
+              <Text style={styles.sheet_title}>Remove All</Text>
+            </TouchableOpacity>
+          </View>
+          
           <BottomSheetScrollView 
           horizontal 
           scrollEventThrottle={16} 
@@ -348,7 +377,13 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
 
         {/* RECENT LOCATIONS */}
         <View style={styles.recents}>
-          <Text style={styles.sheet_title}>Recents🔄</Text>
+          <View style={styles.title_container}>
+            <Text style={styles.sheet_title}>Recents🔄</Text>
+            <TouchableOpacity onPress={handleRemoveAllRecents}>
+              <Text style={styles.sheet_title}>Remove All</Text>
+            </TouchableOpacity>
+          </View>
+          
           <BottomSheetScrollView 
           vertical
           scrollEventThrottle={16} 
@@ -359,31 +394,32 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
           contentContainerStyle={styles.recents_container_inner}>
 
             {recents.map((item, index) => (
-              <TouchableOpacity 
-              key={index}
-              onPress={() => handleLocationPress(item)}
-              activeOpacity={0.6} 
-              style={styles.recent_item}>
-                <View style={styles.recent_icon_container}>
-                  <Image style={styles.recent_icon} source={require("../../assets/location.png")}/>
-                </View>
-                <View  style={styles.recent_info}>
-                  <Text style={styles.text}>{item.label}</Text>
-                  <Text style={styles.text}>{item.address}</Text>
-                </View>
-                
-              </TouchableOpacity>
+              <View style={styles.recent_item}
+              key={index}>
+                <TouchableOpacity 
+                onPress={() => handleLocationPress(item)}
+                activeOpacity={0.6} 
+                style={styles.item_info}>
+                  <View style={styles.recent_icon_container}>
+                    <Image style={styles.recent_icon} source={require("../../assets/location.png")}/>
+                  </View>
+                  <View  style={styles.recent_info}>
+                    <Text style={styles.text}>{item.label}</Text>
+                    <Text style={styles.text}>{item.address}</Text>
+                  </View> 
+                </TouchableOpacity>
+                <TouchableOpacity 
+                onPress={() => handleRemoveSpecificRecent(item)}
+                activeOpacity={0.6}
+                style={styles.delete_container}>
+                  {
+                  colorScheme === 'light' 
+                  ? <Image style={styles.delete_icon} source={require("../../assets/delete.png")}/>
+                  : <Image style={styles.delete_icon} source={require("../../assets/delete_white.png")}/>
+                  }
+                </TouchableOpacity>
+              </View>
             ))}
-
-            <TouchableOpacity style={[styles.recent_item, { borderBottomWidth: 0 }]}>
-              <View>
-                <Image style={styles.recent_icon}/>
-              </View>
-              <View  style={styles.recent_info}>
-                <Text style={styles.text}></Text>
-                <Text style={styles.text}></Text>
-              </View>
-            </TouchableOpacity>
 
           </BottomSheetScrollView>
         </View>
@@ -410,6 +446,11 @@ const createStyles = (theme : any) =>
       padding: 16,
       flexDirection: 'column',
       gap: 15,
+    },
+    title_container: {
+      flex: 1,
+      flexDirection: 'row',
+      justifyContent:'space-between',
     },
     sheet_title: {
       color: theme.textColor,
@@ -456,6 +497,15 @@ const createStyles = (theme : any) =>
     recents: {
       flexDirection: 'column',
     },
+    delete_container: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingRight: 10,
+    },
+    delete_icon: {
+      height: 25,
+      width: 25,
+    },
     recents_container: {
       borderRadius: 10,
       backgroundColor: theme.sheetShading1,
@@ -472,6 +522,11 @@ const createStyles = (theme : any) =>
       borderBottomWidth: 1,
       justifyContent: 'center',
       paddingVertical: 10,
+    },
+    item_info: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      flex: 1,
     },
     recent_icon_container: {
       flexDirection:"column",

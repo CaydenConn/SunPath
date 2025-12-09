@@ -201,6 +201,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
                     onFocus: onFocusExpandSheet,
                     blurOnSubmit: true,
                     placeholderTextColor: theme.textColor,
+                    color: theme.textColor,
                 }}
                 timeout={20000}
             />
@@ -240,7 +241,10 @@ const createStyles = (theme : any) =>
             flexDirection: "row" 
         },
         separator: { height: 0.7, backgroundColor: theme.sheetShading2 },
-        description: { fontSize: 14 },
+        description: { 
+            fontSize: 14,
+            color: theme.textColor,
+         },
 });
 
 export default AddressSearchBar;
