@@ -24,11 +24,23 @@ type Step = {
         lat: number;
         lng: number;
     };
+    start_location: {
+        lat: number;
+        lng: number;
+    };
     polyline: {
         points: string;
     };
-    maneuver: string;
-};
+    maneuver?: string;
+    duration: {
+        text: string;
+        value: number;
+    };
+    distance: {
+        text: string;
+        value: number;
+    };
+}
 // Define your navigation stack types 
 type InsideStackParam = {
     MainPage: undefined;
@@ -151,10 +163,10 @@ const NavigationPage : React.FC<NavigationPageProps> = ({ route }) => {
         const step = steps[0];
 
         setCurrentInstruction(step.html_instructions.replace(/<div.*$/i, '').replace(/<[^>]+>/g, ''));
-        setCurrentManeuver(step.maneuver)
+        setCurrentManeuver(step?.maneuver ?? "")
         const next = steps[1];
         setNextInstruction(next ? next.html_instructions.replace(/<div.*$/i, '').replace(/<[^>]+>/g, '') : "");
-        setNextManeuver(next.maneuver)
+        setNextManeuver(next?.maneuver ?? "")
     }, []);
     // Instructions updated as the user moves along the route
     useEffect(() => {
@@ -168,8 +180,8 @@ const NavigationPage : React.FC<NavigationPageProps> = ({ route }) => {
         const dist = getDistance(
             userLocation,
             {
-                latitude: step.end_location.lat,
-                longitude: step.end_location.lng
+                latitude: step.start_location.lat,
+                longitude: step.start_location.lng
             }
         );
 
@@ -181,11 +193,26 @@ const NavigationPage : React.FC<NavigationPageProps> = ({ route }) => {
         }
         // update text instructions
         setCurrentInstruction(step.html_instructions.replace(/<div.*$/i, '').replace(/<[^>]+>/g, ''));
-        setCurrentManeuver(step.maneuver)
+        setCurrentManeuver(step?.maneuver ?? "")
 
         const nextStep = steps[currentStepIndex + 1];
         setNextInstruction(nextStep ? nextStep.html_instructions.replace(/<div.*$/i, '').replace(/<[^>]+>/g, '') : "");
-        setNextManeuver(nextStep.maneuver)
+        setNextManeuver(nextStep?.maneuver ?? "")
+
+        let remainingDistance = 0;
+        for (let i = currentStepIndex; i < steps.length; i++) {
+            remainingDistance += steps[i].distance.value; // Google gives meters
+        }
+
+        etaDetails.distanceMeters = remainingDistance;
+
+        // ETA from Google step duration
+        let remainingSeconds = 0;
+        for (let i = currentStepIndex; i < steps.length; i++) {
+            remainingSeconds += steps[i].duration.value; // seconds
+        }
+
+        etaDetails.etaSeconds = remainingSeconds;
     }, [userLocation, currentStepIndex]);
 
      // 🔹 AUTO-FOLLOW: move camera as user moves
@@ -208,8 +235,8 @@ const NavigationPage : React.FC<NavigationPageProps> = ({ route }) => {
                 instruction={currentInstruction}
                 nextInstruction={nextInstruction}
                 distanceToTurn={distanceToTurn}
-                currentManeuver={currentManeuver}
-                nextManeuver={nextManeuver}
+                currentManeuver={currentManeuver ?? ""}
+                nextManeuver={nextManeuver ?? ""}
                 >   
                 </NavigationHeader>
             <View

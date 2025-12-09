@@ -24,10 +24,22 @@ type Step = {
         lat: number;
         lng: number;
     };
+    start_location: {
+        lat: number;
+        lng: number;
+    };
     polyline: {
         points: string;
     };
-    maneuver: string;
+    maneuver?: string;
+    duration: {
+        text: string;
+        value: number;
+    };
+    distance: {
+        text: string;
+        value: number;
+    };
 };
 type InsideStackParam = {
   MainPage: undefined;

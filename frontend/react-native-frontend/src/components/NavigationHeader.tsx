@@ -35,8 +35,8 @@ type NavigationHeaderProps = {
   instruction: string;
   distanceToTurn: number;
   nextInstruction: string;
-  currentManeuver: string,
-  nextManeuver: string,
+  currentManeuver?: string,
+  nextManeuver?: string,
 }
 
 type DirectionIconParam = {
@@ -64,6 +64,7 @@ export default function NavigationHeader({ userLocation, instruction, distanceTo
         ["roundabout-left", roundabout_left_icon],
         ["roundabout-right", roundabout_right_icon],
         ["depart", depart_icon],
+        ["", straight_icon]
     ])
     // Maneuver TEXT MAP
     const descToText = new Map([
@@ -75,7 +76,7 @@ export default function NavigationHeader({ userLocation, instruction, distanceTo
         ["turn-sharp-right", "Turn Sharp Right"],
         ["uturn-right", "U-turn Right"],
         ["turn-right", "Turn Right"],
-        ["straight", "Straight"],
+        ["straight", "Continue Straight"],
         ["ramp-left", "Ramp Left"], 
         ["ramp-right", "Ramp Right"],
         ["merge", "Merge"],
@@ -84,6 +85,7 @@ export default function NavigationHeader({ userLocation, instruction, distanceTo
         ["roundabout-left", "Roundabout Left"],
         ["roundabout-right", "Roundabout Right"],
         ["depart", "Start Route"],
+        ["","Continue Straight"]
     ])
 
     const insets = useSafeAreaInsets();
@@ -100,10 +102,10 @@ export default function NavigationHeader({ userLocation, instruction, distanceTo
 
     useEffect(() => {
         setDirectionIcons({
-            curr: descToIcon.get(currentManeuver) ?? straight_icon,
-            next: descToIcon.get(nextManeuver) ?? straight_icon,
+            curr: descToIcon.get(currentManeuver ?? "") ?? straight_icon,
+            next: descToIcon.get(nextManeuver ?? "") ?? straight_icon,
         })
-        setNextDirectionText(descToText.get(nextManeuver) ?? "Continue Straight")
+        setNextDirectionText(descToText.get(nextManeuver ?? "") ?? "Continue Straight")
     }, [currentManeuver, nextManeuver])
     return (
         <View style={styles.top_holder}>
