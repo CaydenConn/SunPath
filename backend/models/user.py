@@ -5,9 +5,9 @@ from dataclasses import dataclass, asdict, field
 @dataclass
 class Address:
     """Represents a saved or recent address"""
-    address: str
-    latitude: float
-    longitude: float
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     label: Optional[str] = None  # Optional label like "Home", "Work", etc.
     timestamp: Optional[str] = None  # ISO format timestamp
     
@@ -74,28 +74,50 @@ class User:
         )
     
     def add_favorite_address(self, address: Address) -> None:
-        """Add an address to favorites (avoids duplicates based on coordinates)"""
-        # Check if address already exists
-        for fav in self.favorite_addresses:
-            if (fav.latitude == address.latitude and 
-                fav.longitude == address.longitude):
-                return  # Already exists, don't add duplicate
+        """
+        Add an address to favorites (avoids duplicates based on coordinates or label)
+        If a placeholder with the same label exists (no coordinates), it will be replaced
+        """
+        # If the new address has coordinates, check for duplicates or placeholders to replace
+        if address.latitude is not None and address.longitude is not None:
+            for i, fav in enumerate(self.favorite_addresses):
+                # Replace placeholder with same label
+                if fav.label == address.label and fav.latitude is None and fav.longitude is None:
+                    self.favorite_addresses[i] = address
+                    self.updated_at = datetime.utcnow().isoformat()
+                    return
+                # Check if coordinates already exist
+                if (fav.latitude == address.latitude and 
+                    fav.longitude == address.longitude):
+                    return  # Already exists, don't add duplicate
+        else:
+            # For placeholders (no coordinates), check if label already exists
+            for fav in self.favorite_addresses:
+                if fav.label == address.label and fav.latitude is None and fav.longitude is None:
+                    return  # Placeholder with this label already exists
         
         self.favorite_addresses.append(address)
         self.updated_at = datetime.utcnow().isoformat()
     
-    def remove_favorite_address(self, latitude: float, longitude: float) -> bool:
-        """Remove an address from favorites by coordinates"""
+    def remove_favorite_address(self, label: str, latitude: Optional[float], longitude: Optional[float]) -> bool:
+        """Remove an address from favorites by label and coordinates"""
         original_length = len(self.favorite_addresses)
         self.favorite_addresses = [
             addr for addr in self.favorite_addresses 
-            if not (addr.latitude == latitude and addr.longitude == longitude)
+            if not (addr.label == label and 
+                   addr.latitude == latitude and 
+                   addr.longitude == longitude)
         ]
         
         if len(self.favorite_addresses) < original_length:
             self.updated_at = datetime.utcnow().isoformat()
             return True
         return False
+    
+    def clear_favorite_addresses(self) -> None:
+        """Clear all favorite addresses"""
+        self.favorite_addresses = []
+        self.updated_at = datetime.utcnow().isoformat()
     
     def add_recent_address(self, address: Address, max_recent: int = 10) -> None:
         """
@@ -105,12 +127,13 @@ class User:
         """
         address.timestamp = datetime.utcnow().isoformat()
         
-        # Remove if already exists to avoid duplicates
-        self.recent_addresses = [
-            addr for addr in self.recent_addresses
-            if not (addr.latitude == address.latitude and 
-                   addr.longitude == address.longitude)
-        ]
+        # Remove if already exists to avoid duplicates (check coordinates if they exist)
+        if address.latitude is not None and address.longitude is not None:
+            self.recent_addresses = [
+                addr for addr in self.recent_addresses
+                if not (addr.latitude == address.latitude and 
+                       addr.longitude == address.longitude)
+            ]
         
         # Add to beginning of list (most recent first)
         self.recent_addresses.insert(0, address)

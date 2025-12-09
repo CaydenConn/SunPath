@@ -3,7 +3,7 @@ from firebase_admin import auth
 from functools import wraps
 from models.database import (
     create_user, get_user, update_user, delete_user, user_exists,
-    add_favorite_address, remove_favorite_address, add_recent_address,
+    add_favorite_address, remove_favorite_address, clear_all_favorites, add_recent_address,
     get_user_favorites, get_user_recent
 )
 from models.user import Address
@@ -186,21 +186,25 @@ def add_favorite(uid):
 @verify_firebase_token
 def remove_favorite(uid):
     """
-    Remove a favorite address
+    Remove a favorite address by name and coordinates
     
     Request body:
     {
-        "latitude": 30.4383,
-        "longitude": -84.2807
+        "label": "Home",
+        "latitude": 30.4383,  (optional - can be null for placeholder addresses)
+        "longitude": -84.2807  (optional - can be null for placeholder addresses)
     }
     """
     data = request.get_json()
     
-    if not data or 'latitude' not in data or 'longitude' not in data:
-        return jsonify({'error': 'Latitude and longitude are required'}), 400
+    if not data or 'label' not in data:
+        return jsonify({'error': 'Label is required'}), 400
     
     try:
-        user = run_async(remove_favorite_address(uid, data['latitude'], data['longitude']))
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        
+        user = run_async(remove_favorite_address(uid, data['label'], latitude, longitude))
         
         if user is None:
             return jsonify({'error': 'User not found'}), 404
@@ -212,6 +216,29 @@ def remove_favorite(uid):
         
     except Exception as e:
         return jsonify({'error': 'Failed to remove favorite', 'details': str(e)}), 500
+
+
+@users_bp.route('/favorites/all', methods=['DELETE'])
+@verify_firebase_token
+def clear_favorites(uid):
+    """
+    Delete all favorite addresses for the user
+    
+    No request body required
+    """
+    try:
+        user = run_async(clear_all_favorites(uid))
+        
+        if user is None:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({
+            'message': 'All favorites cleared successfully',
+            'favorites': []
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to clear favorites', 'details': str(e)}), 500
 
 
 @users_bp.route('/recent', methods=['GET'])
