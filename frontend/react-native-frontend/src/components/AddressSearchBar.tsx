@@ -120,11 +120,6 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({ userLocation, onRou
                 },
                 steps: dataJson.routes[0].legs[0].steps
             });
-
-            // Notify parent(this -> InputBottomSheet -> Map) if callback exists
-            // onPress?.(data, details);
-            // onRouteFetched(simplifiedRoute);
-            // onDestinationSelected?.(destination);
   
             // Adds Searched Locations to Recents
             const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
