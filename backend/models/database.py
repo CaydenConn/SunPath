@@ -49,7 +49,7 @@ def get_firestore_client():
 
 async def create_user(uid: str, email: str) -> User:
     """
-    Create a new user in Firestore
+    Create a new user in Firestore with default favorite addresses
     
     Args:
         uid: Firebase Auth UID
@@ -61,12 +61,19 @@ async def create_user(uid: str, email: str) -> User:
     db = get_firestore_client()
     
     now = datetime.utcnow().isoformat()
+    
+    # Create default favorite addresses with labels but no coordinates
+    default_favorites = [
+        Address(label="Home"),
+        Address(label="Work")
+    ]
+    
     user = User(
         uid=uid,
         email=email,
         created_at=now,
         updated_at=now,
-        favorite_addresses=[],
+        favorite_addresses=default_favorites,
         recent_addresses=[]
     )
     
@@ -172,14 +179,15 @@ async def add_favorite_address(uid: str, address: Address) -> Optional[User]:
     return await update_user(user)
 
 
-async def remove_favorite_address(uid: str, latitude: float, longitude: float) -> Optional[User]:
+async def remove_favorite_address(uid: str, label: str, latitude: Optional[float], longitude: Optional[float]) -> Optional[User]:
     """
-    Remove a favorite address for a user
+    Remove a favorite address for a user by label and coordinates
     
     Args:
         uid: Firebase Auth UID
-        latitude: Address latitude
-        longitude: Address longitude
+        label: Address label (e.g., "Home", "Work")
+        latitude: Address latitude (optional)
+        longitude: Address longitude (optional)
         
     Returns:
         Updated User object or None if user not found
@@ -188,7 +196,25 @@ async def remove_favorite_address(uid: str, latitude: float, longitude: float) -
     if user is None:
         return None
     
-    user.remove_favorite_address(latitude, longitude)
+    user.remove_favorite_address(label, latitude, longitude)
+    return await update_user(user)
+
+
+async def clear_all_favorites(uid: str) -> Optional[User]:
+    """
+    Clear all favorite addresses for a user
+    
+    Args:
+        uid: Firebase Auth UID
+        
+    Returns:
+        Updated User object or None if user not found
+    """
+    user = await get_user(uid)
+    if user is None:
+        return None
+    
+    user.clear_favorite_addresses()
     return await update_user(user)
 
 
