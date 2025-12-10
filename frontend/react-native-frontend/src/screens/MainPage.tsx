@@ -86,17 +86,17 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
     const handleCreatePinClicked = async () => {
         try {
             const idToken = await FIREBASE_AUTH.currentUser?.getIdToken();
-            const postResponse = await fetch(`${API_BASE_URL}/api/favorites`, {
+            const postResponse = await fetch(`${API_BASE_URL}/api/users/favorites`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authentication": `Bearer ${idToken}`,
+                    "Authorization": `Bearer ${idToken}`,
                 },
                 body: JSON.stringify({
                     label: pinnedLabel ?? "",
                     address: pinnedCoords.address ?? "", 
-                    lat: pinnedCoords.lat,
-                    lng: pinnedCoords.lng,
+                    latitude: pinnedCoords.lat,
+                    longitude: pinnedCoords.lng,
                 }),
             });
             const postJson = await postResponse.json();
