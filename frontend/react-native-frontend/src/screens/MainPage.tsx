@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Pressable, Button, Image } from 'react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import Header from '../components/Header'
@@ -12,12 +12,23 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import InputBottomSheet from '../components/InputBottomSheet';
 
 import * as Location from 'expo-location';
+import { Modal } from '../components/Modal';
+import { useTheme } from '../../styles/ThemeContext';
+import { TextInput } from 'react-native-gesture-handler';
+import AddressSearchBar from '../components/AddressSearchBar';
+import { API_BASE_URL } from '@env';
 
 // Define your navigation stack types 
 type RootStackParamList = {
   MainPage: undefined;
   // Add other screens if needed
 };
+
+type PinnedCoordsParams = {
+    address: string;
+    lat: number | null;
+    lng: number | null;
+}
 
 // Props for MainPage
 type MainPageProps = {
@@ -26,6 +37,16 @@ type MainPageProps = {
 };
 
 const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
+    const { theme, colorScheme } = useTheme();
+    const styles = createStyles(theme);
+    
+    const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+    const [pinnedLabel, setPinnedLabel] = useState<string | undefined>(undefined)
+    const [pinnedCoords, setPinnedCoords] = useState<PinnedCoordsParams>({
+        address: "",
+        lat: null,
+        lng: null
+    })
 
     const mapRef = useRef<MapRef>(null);
     const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
@@ -51,8 +72,52 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
         mapRef.current?.centerOnUser();
     };
 
+    const handleSearchBarSelection = async (data: any, details: any) => {
+        if (!details) return;
+        
+        const destination = {
+            address: details.formatted_address ?? "",
+            lat: details.geometry.location.lat,
+            lng: details.geometry.location.lng,
+        };
+        setPinnedCoords(destination);
+    }
+
+    const handleCreatePinClicked = async () => {
+        try {
+            const idToken = await FIREBASE_AUTH.currentUser?.getIdToken();
+            const postResponse = await fetch(`${API_BASE_URL}/api/favorites`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authentication": `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({
+                    label: pinnedLabel ?? "",
+                    address: pinnedCoords.address ?? "", 
+                    lat: pinnedCoords.lat,
+                    lng: pinnedCoords.lng,
+                }),
+            });
+            const postJson = await postResponse.json();
+            console.log("Pinned saved: ", postJson)
+
+            setPinnedCoords({
+                address: "",
+                lat: null,
+                lng: null,
+            })
+            setPinnedLabel(undefined)
+            setIsModalVisible(false)
+        }catch(error){
+            console.log("Failed to add Pinned location: ", error)
+        }
+
+    }
+
     return (
         <View style={styles.container}>
+            
             <Header userLocation={userLocation}/>
             <Map ref={mapRef}
                 navigationMode={false} 
@@ -63,29 +128,127 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
                 showDefaultUserIcon={true}
                 />
             <CenterButton addedStyle={styles.centerUserButton} onPress={handleCenter}/>
-            <InputBottomSheet userLocation={userLocation} onRouteFetched={setRouteCoordinates} onDestinationSelected={setDestination}/>
-            {/* Logout button */}
-            {/* <View style={styles.logoutContainer}>
-                <Button title="Log out" onPress={() => FIREBASE_AUTH.signOut()} />
-            </View> */}
+            <InputBottomSheet 
+            userLocation={userLocation} 
+            onRouteFetched={setRouteCoordinates} 
+            onDestinationSelected={setDestination}
+            setIsModalVisible={setIsModalVisible}
+            />
+
+
+            {/* Add Or Update Favorites Modal */}
+            <Modal
+            isVisible={isModalVisible}>
+                <View style={styles.modal_container}>
+                    <View style={styles.modal_title_container}>
+                        <Text style={styles.modal_title}>Add Pinned Location</Text>
+                        {colorScheme === 'light'
+                        ? (
+                            <TouchableOpacity activeOpacity={0.6} onPress={() => {setIsModalVisible(false)}}>
+                                <Image style={styles.modal_close} source={require('../../assets/close.png')}/>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity onPress={() => {setIsModalVisible(false)}}>
+                                <Image style={styles.modal_close} source={require('../../assets/close_white.png')}/>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                    <View style={styles.modal_content_container}>
+                        <Text style={styles.modal_subtitle}>Label</Text>
+                        <TextInput 
+                        value={pinnedLabel}
+                        onChangeText={setPinnedLabel}
+                        style={styles.textInput}
+                        placeholderTextColor={theme.textColor}
+                        placeholder={pinnedLabel ?? "Enter Label"}/>
+                    </View>
+                    <View style={styles.modal_content_container}>
+                        <Text style={styles.modal_subtitle}>Address</Text>
+                        <AddressSearchBar
+                        handleSearchBarSelection={handleSearchBarSelection}/>
+                    </View>
+                    <TouchableOpacity
+                    onPress={handleCreatePinClicked} 
+                    style={styles.modal_button}>
+                        <Text style={styles.modal_button_text}>Create Pin</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
         </View>
     );
 }
-
-const styles = StyleSheet.create({
+const createStyles = (theme : any) => 
+    StyleSheet.create({
     container: {
         flex: 1,
     },
     top: {
-        zIndex: 10000,
+        zIndex: 100,
         flex: 1,
     },
     centerUserButton: {
         position: 'absolute',
             bottom: 180,
             right: 20,
-    }
-
+    },
+    modal_container: {
+        width: '100%',
+        padding: 10,
+        backgroundColor: theme.color,
+        borderRadius: theme.header.borderRadius,
+        zIndex: 1000,
+        position: 'absolute',
+        gap: 10,
+    },
+    modal_title_container: {
+        flexDirection: 'row',
+        flex: 1,
+        justifyContent: 'space-between'
+    },
+    modal_title: {
+        color: theme.textColor,
+        fontWeight: 600,
+        fontSize: 20,
+    },
+    modal_close: {
+        width: 30,
+        height: 30,
+    },
+    modal_content_container: {
+        flex: 1,
+        flexDirection: 'column',
+    },
+    modal_subtitle: {
+        color: theme.textColor,
+        fontSize: 14,
+    },
+    modal_button: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#4285F4',
+        height: 55,
+        borderRadius: theme.header.borderRadius,
+        marginTop: 15,
+    },
+    modal_button_text: {
+        fontWeight: 'bold',
+        fontSize: 20,
+        color: 'white',
+    },
+    textInput: {
+        height: 44,
+        fontSize: 16,
+        backgroundColor: theme.sheetShading1,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+        color: theme.textColor,
+    },
 });
 
 export default MainPage

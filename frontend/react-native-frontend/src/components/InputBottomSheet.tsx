@@ -10,11 +10,13 @@ import { API_BASE_URL, GOOGLE_PLACES_API_KEY } from "@env";
 import { getAuth } from 'firebase/auth';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 
 type InputBottomSheetProps = {
   userLocation: { latitude: number; longitude: number } | null;
   onRouteFetched: (coords: { latitude: number; longitude: number }[]) => void;
   onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
+  setIsModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
 };
 type Step = {
     html_instructions: string;
@@ -69,8 +71,81 @@ type RecentItem = {
   place_id?: string;
   ts?: string;
 };
-const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, }) => {
+const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, setIsModalVisible}) => {
   const navigation = useNavigation<NavigationProp>();
+  const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
+  const handleSearchBarSelection = async (data: any, details: any) => {
+    placesRef.current?.blur();
+    if (!details || !userLocation) return;
+
+    const destination = {
+        latitude: details.geometry.location.lat,
+        longitude: details.geometry.location.lng,
+    };
+
+    if (bottomSheetRef?.current) {
+        setTimeout(() => {
+            bottomSheetRef.current?.snapToIndex(1);
+        }, 50);
+    }
+
+    // Fetch route from Google Directions API
+    try {
+        const response = await fetch(
+            `https://maps.googleapis.com/maps/api/directions/json?origin=${userLocation.latitude},${userLocation.longitude}&destination=${destination.latitude},${destination.longitude}&key=${GOOGLE_PLACES_API_KEY}`
+        );
+
+        const dataJson = await response.json();
+        if (!dataJson.routes?.length) return;
+
+        const leg = dataJson.routes[0].legs[0]
+        const steps: Step[] = leg.steps;
+        const routeCoords = steps.flatMap((step: Step) =>
+            polyline.decode(step.polyline.points).map((p: [number, number]) => ({
+                latitude: p[0],
+                longitude: p[1],
+            }))
+        );
+        // const simplifiedRoute = routeCoords.filter((_, index) => index % 2 === 0);
+        const simplifiedRoute = routeCoords
+        
+        // Navigate to the NavPage + Pass all relevent data
+        navigation.navigate('NavigationPage', {
+            details,
+            destination,
+            simplifiedRoute: simplifiedRoute, 
+            etaDetails: {
+                etaText: leg.duration.text,
+                etaSeconds: leg.duration.value,
+                distanceText: leg.distance.text,
+                distanceMeters: leg.distance.value,
+            },
+            steps: dataJson.routes[0].legs[0].steps
+        });
+
+        // Adds Searched Locations to Recents
+        const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-User-Id": `${getAuth().currentUser?.uid}`,
+            },
+            body: JSON.stringify({
+                label: details.name ?? details.formatted_address ?? "",
+                address: details.formatted_address ?? "", 
+                lat: details.geometry.location.lat,
+                lng: details.geometry.location.lng,
+                place_id: details.place_id,
+            }),
+        });
+        const postJson = await postResponse.json();
+        console.log("Recent saved: ", postJson)
+
+        placesRef.current?.setAddressText('');
+    } catch (error) {
+        console.error("Failed to fetch route: ", error);
+    }
+  }
   const handlePinnedLocationPress = (): void => {
       console.log("Favorite Pressed");
   };
@@ -166,6 +241,12 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       console.error("Failed to delet recents: ", error);
     }
   }
+  const handleAddPinnedClicked = () => {
+    if (bottomSheetRef?.current) {
+      bottomSheetRef.current?.snapToIndex(0);
+    }
+    setIsModalVisible(true)
+  }
   const { theme, colorScheme } = useTheme();
   const styles = createStyles(theme);
   
@@ -190,8 +271,8 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   // Loads Recents
   useEffect(() => {
     fetchRecents(); // initial load
-    const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
-    return () => clearInterval(interval);
+    // const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
+    return //() => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -278,6 +359,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
         <View>
           <AddressSearchBar
             userLocation={userLocation}
+            handleSearchBarSelection={handleSearchBarSelection}
             onRouteFetched={onRouteFetched}
             onDestinationSelected={(dest) => {
               onDestinationSelected?.(dest);
@@ -357,7 +439,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
               </TouchableOpacity>
             ))}
             <TouchableOpacity 
-              // onPress={}
+              onPress={handleAddPinnedClicked}
               activeOpacity={0.75} 
               style={styles.pinned_item}>
               <View style={styles.pinned_icon_container}>
