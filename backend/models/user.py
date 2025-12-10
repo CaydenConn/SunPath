@@ -87,9 +87,9 @@ class User:
                     self.updated_at = datetime.utcnow().isoformat()
                     return
                 # Check if coordinates already exist
-                if (fav.latitude == address.latitude and 
-                    fav.longitude == address.longitude):
-                    return  # Already exists, don't add duplicate
+            if (fav.latitude == address.latitude and 
+                fav.longitude == address.longitude):
+                return  # Already exists, don't add duplicate
         else:
             # For placeholders (no coordinates), check if label already exists
             for fav in self.favorite_addresses:

@@ -124,18 +124,20 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
         });
 
         // Adds Searched Locations to Recents
-        const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
+        // Get Firebase ID token for authentication
+        const idToken = await getAuth().currentUser?.getIdToken();
+        
+        const postResponse = await fetch(`${API_BASE_URL}/api/users/recent`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-User-Id": `${getAuth().currentUser?.uid}`,
+                "Authorization": `Bearer ${idToken}`,
             },
             body: JSON.stringify({
                 label: details.name ?? details.formatted_address ?? "",
                 address: details.formatted_address ?? "", 
-                lat: details.geometry.location.lat,
-                lng: details.geometry.location.lng,
-                place_id: details.place_id,
+                latitude: details.geometry.location.lat,
+                longitude: details.geometry.location.lng,
             }),
         });
         const postJson = await postResponse.json();
@@ -197,18 +199,18 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       });
 
       // Adds Searched Locations to Recents
-      const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const postResponse = await fetch(`${API_BASE_URL}/api/users/recent`, {
           method: "POST",
           headers: {
               "Content-Type": "application/json",
-              "X-User-Id": `${getAuth().currentUser?.uid}`,
+              "Authorization": `Bearer ${idToken}`,
           },
           body: JSON.stringify({
               label: item.label ?? "",
               address: item.address ?? "", 
-              lat: item.lat,
-              lng: item.lng,
-              place_id: item.place_id,
+              latitude: item.lat,
+              longitude: item.lng,
           }),
       });
       const postJson = await postResponse.json();
@@ -220,25 +222,40 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   };
   const handleRemoveSpecificRecent = async (item: any) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/recents`)
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/recent`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          label: item.label,
+          latitude: item.lat,
+          longitude: item.lng,
+        }),
+      });
+      const result = await res.json();
+      console.log('Deleted specific recent:', result);
+      fetchRecents();
     } catch(error){
       console.log("Failed to delete recent item: ", error)
     }
   }
   const handleRemoveAllRecents = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/recents`, {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/recent/all`, {
         method: "DELETE",
         headers: {
-          "Content-Type": "application/json",
-          "X-User-Id": `${getAuth().currentUser?.uid}`,
+          "Authorization": `Bearer ${idToken}`,
         },
       })
       const result = await res.json();
       console.log('Deleted successfully:', result);
       fetchRecents();
     } catch (error) {
-      console.error("Failed to delet recents: ", error);
+      console.error("Failed to delete recents: ", error);
     }
   }
   const handleAddPinnedClicked = () => {
@@ -257,13 +274,14 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const fetchRecents = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/recents?limit=10`, {
+        const idToken = await getAuth().currentUser?.getIdToken();
+        const res = await fetch(`${API_BASE_URL}/api/users/recent`, {
           headers: {
-            "X-User-Id": `${getAuth().currentUser!.uid}`,
+            "Authorization": `Bearer ${idToken}`,
           },
         });
         const json = await res.json();
-        setRecents(json);
+        setRecents(json.recent || []);
       } catch (err) {
         console.log("Error:", err);
       }

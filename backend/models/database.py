@@ -35,21 +35,9 @@ def initialize_firebase():
             # Initialize with default credentials (for deployed environments)
             firebase_admin.initialize_app()
     
-    # Use REST API transport to avoid gRPC issues
-    try:
-        from google.cloud.firestore import Client
-        from google.auth import credentials as google_creds
-        from google.auth.credentials import AnonymousCredentials
-        
-        # Get the Firebase app
-        app = firebase_admin.get_app()
-        
-        # Create Firestore client with explicit settings
-        db = firestore.client()
-        print("[DB] Firestore client initialized successfully")
-    except Exception as e:
-        print(f"[DB] Error initializing Firestore client: {str(e)}")
-        raise
+    # Create Firestore client
+    db = firestore.client()
+    print("[DB] Firestore client initialized successfully")
     
     return db
 

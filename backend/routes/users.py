@@ -290,6 +290,34 @@ def get_recent(uid):
         return jsonify({'error': 'Failed to get recent addresses', 'details': str(e)}), 500
 
 
+@users_bp.route('/recent/all', methods=['DELETE'])
+@verify_firebase_token
+def clear_all_recents(uid):
+    """
+    Delete all recent addresses for the user
+    
+    No request body required
+    """
+    try:
+        from models.database import get_user, update_user
+        
+        user = get_user(uid)
+        
+        if user is None:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user.clear_recent_addresses()
+        update_user(user)
+        
+        return jsonify({
+            'message': 'All recent addresses cleared successfully',
+            'recent': []
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to clear recent addresses', 'details': str(e)}), 500
+
+
 @users_bp.route('/recent', methods=['POST'])
 @verify_firebase_token
 def add_recent(uid):
