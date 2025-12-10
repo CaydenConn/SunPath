@@ -4,6 +4,8 @@ from typing import Optional, List
 from datetime import datetime
 from .user import User, Address
 import os
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
+import functools
 
 # Global Firestore client
 db = None
@@ -33,7 +35,22 @@ def initialize_firebase():
             # Initialize with default credentials (for deployed environments)
             firebase_admin.initialize_app()
     
-    db = firestore.client()
+    # Use REST API transport to avoid gRPC issues
+    try:
+        from google.cloud.firestore import Client
+        from google.auth import credentials as google_creds
+        from google.auth.credentials import AnonymousCredentials
+        
+        # Get the Firebase app
+        app = firebase_admin.get_app()
+        
+        # Create Firestore client with explicit settings
+        db = firestore.client()
+        print("[DB] Firestore client initialized successfully")
+    except Exception as e:
+        print(f"[DB] Error initializing Firestore client: {str(e)}")
+        raise
+    
     return db
 
 
@@ -47,7 +64,7 @@ def get_firestore_client():
 
 # User CRUD Operations
 
-async def create_user(uid: str, email: str) -> User:
+def create_user(uid: str, email: str) -> User:
     """
     Create a new user in Firestore with default favorite addresses
     
@@ -83,7 +100,7 @@ async def create_user(uid: str, email: str) -> User:
     return user
 
 
-async def get_user(uid: str) -> Optional[User]:
+def get_user(uid: str) -> Optional[User]:
     """
     Get a user from Firestore by UID
     
@@ -93,17 +110,34 @@ async def get_user(uid: str) -> Optional[User]:
     Returns:
         User object or None if not found
     """
+    print(f"[DB] get_user called for uid: {uid}")
     db = get_firestore_client()
+    print(f"[DB] Firestore client obtained")
     
     doc_ref = db.collection('users').document(uid)
-    doc = doc_ref.get()
+    print(f"[DB] Getting document from Firestore...")
     
-    if doc.exists:
-        return User.from_dict(doc.to_dict())
-    return None
+    try:
+        # Add timeout to prevent hanging
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(lambda: doc_ref.get())
+        doc = future.result(timeout=10)  # 10 second timeout
+        print(f"[DB] Document retrieved. Exists: {doc.exists}")
+        
+        if doc.exists:
+            user_data = doc.to_dict()
+            print(f"[DB] User data: {user_data}")
+            return User.from_dict(user_data)
+        return None
+    except TimeoutError:
+        print(f"[DB] ERROR: Timeout waiting for Firestore response")
+        raise Exception("Firestore operation timed out")
+    except Exception as e:
+        print(f"[DB] ERROR: Exception in get_user: {str(e)}")
+        raise
 
 
-async def update_user(user: User) -> User:
+def update_user(user: User) -> User:
     """
     Update a user in Firestore
     
@@ -113,16 +147,20 @@ async def update_user(user: User) -> User:
     Returns:
         Updated User object
     """
+    print(f"[DB] update_user called for uid: {user.uid}")
     db = get_firestore_client()
     
     user.updated_at = datetime.utcnow().isoformat()
+    print(f"[DB] Updated timestamp: {user.updated_at}")
     
+    print(f"[DB] Updating document in Firestore...")
     db.collection('users').document(user.uid).update(user.to_dict())
+    print(f"[DB] Document updated successfully")
     
     return user
 
 
-async def delete_user(uid: str) -> bool:
+def delete_user(uid: str) -> bool:
     """
     Delete a user from Firestore
     
@@ -142,7 +180,7 @@ async def delete_user(uid: str) -> bool:
     return False
 
 
-async def user_exists(uid: str) -> bool:
+def user_exists(uid: str) -> bool:
     """
     Check if a user exists in Firestore
     
@@ -152,15 +190,32 @@ async def user_exists(uid: str) -> bool:
     Returns:
         True if user exists, False otherwise
     """
+    print(f"[DB] user_exists called for uid: {uid}")
     db = get_firestore_client()
+    print(f"[DB] Firestore client obtained")
     
     doc_ref = db.collection('users').document(uid)
-    return doc_ref.get().exists
+    print(f"[DB] Getting document to check existence...")
+    
+    try:
+        # Add timeout to prevent hanging
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(lambda: doc_ref.get())
+        doc = future.result(timeout=10)  # 10 second timeout
+        exists = doc.exists
+        print(f"[DB] Document exists: {exists}")
+        return exists
+    except TimeoutError:
+        print(f"[DB] ERROR: Timeout waiting for Firestore response")
+        raise Exception("Firestore operation timed out")
+    except Exception as e:
+        print(f"[DB] ERROR: Exception in user_exists: {str(e)}")
+        raise
 
 
 # Address Operations
 
-async def add_favorite_address(uid: str, address: Address) -> Optional[User]:
+def add_favorite_address(uid: str, address: Address) -> Optional[User]:
     """
     Add a favorite address for a user
     
@@ -171,15 +226,28 @@ async def add_favorite_address(uid: str, address: Address) -> Optional[User]:
     Returns:
         Updated User object or None if user not found
     """
-    user = await get_user(uid)
+    print(f"[DB] add_favorite_address called for uid: {uid}")
+    print(f"[DB] Address: {address}")
+    
+    print(f"[DB] Getting user...")
+    user = get_user(uid)
+    print(f"[DB] Got user: {user}")
+    
     if user is None:
+        print(f"[DB] User is None, returning None")
         return None
     
+    print(f"[DB] Adding address to user's favorites...")
     user.add_favorite_address(address)
-    return await update_user(user)
+    print(f"[DB] Address added. User now has {len(user.favorite_addresses)} favorites")
+    
+    print(f"[DB] Updating user in Firestore...")
+    result = update_user(user)
+    print(f"[DB] User updated successfully")
+    return result
 
 
-async def remove_favorite_address(uid: str, label: str, latitude: Optional[float], longitude: Optional[float]) -> Optional[User]:
+def remove_favorite_address(uid: str, label: str, latitude: Optional[float], longitude: Optional[float]) -> Optional[User]:
     """
     Remove a favorite address for a user by label and coordinates
     
@@ -192,15 +260,15 @@ async def remove_favorite_address(uid: str, label: str, latitude: Optional[float
     Returns:
         Updated User object or None if user not found
     """
-    user = await get_user(uid)
+    user = get_user(uid)
     if user is None:
         return None
     
     user.remove_favorite_address(label, latitude, longitude)
-    return await update_user(user)
+    return update_user(user)
 
 
-async def clear_all_favorites(uid: str) -> Optional[User]:
+def clear_all_favorites(uid: str) -> Optional[User]:
     """
     Clear all favorite addresses for a user
     
@@ -210,15 +278,15 @@ async def clear_all_favorites(uid: str) -> Optional[User]:
     Returns:
         Updated User object or None if user not found
     """
-    user = await get_user(uid)
+    user = get_user(uid)
     if user is None:
         return None
     
     user.clear_favorite_addresses()
-    return await update_user(user)
+    return update_user(user)
 
 
-async def add_recent_address(uid: str, address: Address) -> Optional[User]:
+def add_recent_address(uid: str, address: Address) -> Optional[User]:
     """
     Add a recent address for a user
     
@@ -229,15 +297,15 @@ async def add_recent_address(uid: str, address: Address) -> Optional[User]:
     Returns:
         Updated User object or None if user not found
     """
-    user = await get_user(uid)
+    user = get_user(uid)
     if user is None:
         return None
     
     user.add_recent_address(address)
-    return await update_user(user)
+    return update_user(user)
 
 
-async def get_user_favorites(uid: str) -> Optional[List[Address]]:
+def get_user_favorites(uid: str) -> Optional[List[Address]]:
     """
     Get all favorite addresses for a user
     
@@ -247,14 +315,14 @@ async def get_user_favorites(uid: str) -> Optional[List[Address]]:
     Returns:
         List of Address objects or None if user not found
     """
-    user = await get_user(uid)
+    user = get_user(uid)
     if user is None:
         return None
     
     return user.favorite_addresses
 
 
-async def get_user_recent(uid: str) -> Optional[List[Address]]:
+def get_user_recent(uid: str) -> Optional[List[Address]]:
     """
     Get all recent addresses for a user
     
@@ -264,7 +332,7 @@ async def get_user_recent(uid: str) -> Optional[List[Address]]:
     Returns:
         List of Address objects or None if user not found
     """
-    user = await get_user(uid)
+    user = get_user(uid)
     if user is None:
         return None
     

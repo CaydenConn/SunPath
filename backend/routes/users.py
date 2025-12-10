@@ -7,7 +7,6 @@ from models.database import (
     get_user_favorites, get_user_recent
 )
 from models.user import Address
-import asyncio
 
 users_bp = Blueprint('users', __name__, url_prefix='/api/users')
 
@@ -42,17 +41,6 @@ def verify_firebase_token(f):
     return decorated_function
 
 
-# Helper function to run async functions
-def run_async(coro):
-    """Run an async function in a new event loop"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
-
-
 @users_bp.route('/create', methods=['POST'])
 @verify_firebase_token
 def create_user_profile(uid):
@@ -64,16 +52,33 @@ def create_user_profile(uid):
     """
     data = request.get_json()
     
+    # DEBUG: Print what we received
+    print("=" * 50)
+    print("CREATE USER PROFILE REQUEST")
+    print(f"UID: {uid}")
+    print(f"Request Body: {data}")
+    print(f"Request Headers: {dict(request.headers)}")
+    print("=" * 50)
+    
     if not data or 'email' not in data:
+        print(f"ERROR: Email is missing. Data: {data}")
         return jsonify({'error': 'Email is required'}), 400
     
     try:
         # Check if user already exists
-        if run_async(user_exists(uid)):
+        print(f"Checking if user {uid} already exists...")
+        exists = user_exists(uid)
+        print(f"User exists: {exists}")
+        
+        if exists:
+            print(f"ERROR: User profile already exists for uid: {uid}")
             return jsonify({'error': 'User profile already exists'}), 409
         
         # Create user
-        user = run_async(create_user(uid, data['email']))
+        print(f"Creating user profile for {uid} with email {data['email']}")
+        user = create_user(uid, data['email'])
+        print(f"SUCCESS: User profile created for {uid}")
+        print(f"User data: {user.to_dict()}")
         
         return jsonify({
             'message': 'User created successfully',
@@ -81,6 +86,9 @@ def create_user_profile(uid):
         }), 201
         
     except Exception as e:
+        print(f"EXCEPTION in create_user_profile: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': 'Failed to create user', 'details': str(e)}), 500
 
 
@@ -91,7 +99,7 @@ def get_user_profile(uid):
     Get user profile
     """
     try:
-        user = run_async(get_user(uid))
+        user = get_user(uid)
         
         if user is None:
             return jsonify({'error': 'User not found'}), 404
@@ -110,7 +118,7 @@ def delete_user_profile(uid):
     Note: This only deletes the Firestore profile, not the Firebase Auth account
     """
     try:
-        deleted = run_async(delete_user(uid))
+        deleted = delete_user(uid)
         
         if not deleted:
             return jsonify({'error': 'User not found'}), 404
@@ -128,7 +136,7 @@ def get_favorites(uid):
     Get user's favorite addresses
     """
     try:
-        favorites = run_async(get_user_favorites(uid))
+        favorites = get_user_favorites(uid)
         
         if favorites is None:
             return jsonify({'error': 'User not found'}), 404
@@ -157,7 +165,16 @@ def add_favorite(uid):
     """
     data = request.get_json()
     
+    # DEBUG: Print what we received
+    print("=" * 50)
+    print("ADD FAVORITE REQUEST")
+    print(f"UID: {uid}")
+    print(f"Request Body: {data}")
+    print(f"Request Headers: {dict(request.headers)}")
+    print("=" * 50)
+    
     if not data or 'address' not in data or 'latitude' not in data or 'longitude' not in data:
+        print(f"ERROR: Missing required fields. Data: {data}")
         return jsonify({'error': 'Address, latitude, and longitude are required'}), 400
     
     try:
@@ -168,10 +185,19 @@ def add_favorite(uid):
             label=data.get('label')
         )
         
-        user = run_async(add_favorite_address(uid, address))
+        print(f"Address object created: {address}")
+        print(f"About to call add_favorite_address for uid: {uid}")
+        
+        user = add_favorite_address(uid, address)
+        
+        print(f"Returned from add_favorite_address. User: {user}")
         
         if user is None:
+            print(f"ERROR: User not found for uid: {uid}")
             return jsonify({'error': 'User not found'}), 404
+        
+        print(f"SUCCESS: Favorite added for user {uid}")
+        print(f"User favorites: {user.favorite_addresses}")
         
         return jsonify({
             'message': 'Favorite added successfully',
@@ -179,6 +205,9 @@ def add_favorite(uid):
         }), 200
         
     except Exception as e:
+        print(f"EXCEPTION in add_favorite: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': 'Failed to add favorite', 'details': str(e)}), 500
 
 
@@ -204,7 +233,7 @@ def remove_favorite(uid):
         latitude = data.get('latitude')
         longitude = data.get('longitude')
         
-        user = run_async(remove_favorite_address(uid, data['label'], latitude, longitude))
+        user = remove_favorite_address(uid, data['label'], latitude, longitude)
         
         if user is None:
             return jsonify({'error': 'User not found'}), 404
@@ -227,7 +256,7 @@ def clear_favorites(uid):
     No request body required
     """
     try:
-        user = run_async(clear_all_favorites(uid))
+        user = clear_all_favorites(uid)
         
         if user is None:
             return jsonify({'error': 'User not found'}), 404
@@ -248,7 +277,7 @@ def get_recent(uid):
     Get user's recent addresses
     """
     try:
-        recent = run_async(get_user_recent(uid))
+        recent = get_user_recent(uid)
         
         if recent is None:
             return jsonify({'error': 'User not found'}), 404
@@ -288,7 +317,7 @@ def add_recent(uid):
             label=data.get('label')
         )
         
-        user = run_async(add_recent_address(uid, address))
+        user = add_recent_address(uid, address)
         
         if user is None:
             return jsonify({'error': 'User not found'}), 404
