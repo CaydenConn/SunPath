@@ -154,8 +154,8 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   const handleLocationPress = async (item: RecentItem) => {
     if (!userLocation) return;
     const destination = {
-            latitude: item.lat,
-            longitude: item.lng,
+            latitude: item.latitude || item.lat,
+            longitude: item.longitude || item.lng,
         };
 
         if (bottomSheetRef?.current) {
@@ -209,8 +209,8 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
           body: JSON.stringify({
               label: item.label ?? "",
               address: item.address ?? "", 
-              latitude: item.lat,
-              longitude: item.lng,
+              latitude: item.latitude || item.lat,
+              longitude: item.longitude || item.lng,
           }),
       });
       const postJson = await postResponse.json();
@@ -231,8 +231,8 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
         },
         body: JSON.stringify({
           label: item.label,
-          latitude: item.lat,
-          longitude: item.lng,
+          latitude: item.latitude || item.lat,  // Support both field names
+          longitude: item.longitude || item.lng, // Support both field names
         }),
       });
       const result = await res.json();
@@ -256,6 +256,46 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       fetchRecents();
     } catch (error) {
       console.error("Failed to delete recents: ", error);
+    }
+  }
+  
+  const handleRemoveSpecificFavorite = async (item: any) => {
+    try {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/favorites`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          label: item.label,
+          latitude: item.latitude,
+          longitude: item.longitude,
+        }),
+      });
+      const result = await res.json();
+      console.log('Deleted specific favorite:', result);
+      // fetchFavorites(); // Uncomment when you add fetchFavorites function
+    } catch(error){
+      console.log("Failed to delete favorite item: ", error)
+    }
+  }
+  
+  const handleRemoveAllFavorites = async () => {
+    try {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/favorites/all`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${idToken}`,
+        },
+      })
+      const result = await res.json();
+      console.log('Deleted all favorites successfully:', result);
+      // fetchFavorites(); // Uncomment when you add fetchFavorites function
+    } catch (error) {
+      console.error("Failed to delete favorites: ", error);
     }
   }
   const handleAddPinnedClicked = () => {
@@ -391,7 +431,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
         <View style={styles.pinned_locations}>
           <View style={styles.title_container}>
             <Text style={styles.sheet_title}>Pinned Locations📍</Text>
-            <TouchableOpacity onPress={handleRemoveAllRecents}>
+            <TouchableOpacity onPress={handleRemoveAllFavorites}>
               <Text style={styles.sheet_title}>Remove All</Text>
             </TouchableOpacity>
           </View>

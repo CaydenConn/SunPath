@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from firebase_admin import auth
 from functools import wraps
+from datetime import datetime
 from models.database import (
     create_user, get_user, update_user, delete_user, user_exists,
     add_favorite_address, remove_favorite_address, clear_all_favorites, add_recent_address,
@@ -288,6 +289,59 @@ def get_recent(uid):
         
     except Exception as e:
         return jsonify({'error': 'Failed to get recent addresses', 'details': str(e)}), 500
+
+
+@users_bp.route('/recent', methods=['DELETE'])
+@verify_firebase_token
+def remove_recent(uid):
+    """
+    Remove a specific recent address by label and coordinates
+    
+    Request body:
+    {
+        "label": "Work",
+        "latitude": 30.4383,  (optional - can be null)
+        "longitude": -84.2807  (optional - can be null)
+    }
+    """
+    data = request.get_json()
+    
+    if not data or 'label' not in data:
+        return jsonify({'error': 'Label is required'}), 400
+    
+    try:
+        from models.database import get_user, update_user
+        
+        user = get_user(uid)
+        
+        if user is None:
+            return jsonify({'error': 'User not found'}), 404
+        
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        
+        # Remove the specific recent address
+        original_length = len(user.recent_addresses)
+        user.recent_addresses = [
+            addr for addr in user.recent_addresses
+            if not (addr.label == data['label'] and 
+                   addr.latitude == latitude and 
+                   addr.longitude == longitude)
+        ]
+        
+        if len(user.recent_addresses) < original_length:
+            user.updated_at = datetime.utcnow().isoformat()
+            update_user(user)
+            
+            return jsonify({
+                'message': 'Recent address removed successfully',
+                'recent': [addr.to_dict() for addr in user.recent_addresses]
+            }), 200
+        else:
+            return jsonify({'error': 'Recent address not found'}), 404
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to remove recent address', 'details': str(e)}), 500
 
 
 @users_bp.route('/recent/all', methods=['DELETE'])
