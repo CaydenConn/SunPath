@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Text, StyleSheet, TouchableOpacity, View, Image } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, View, Image, Touchable } from 'react-native';
 import BottomSheet, { BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useTheme } from '../../styles/ThemeContext';
 import { getDistance } from 'geolib';
@@ -10,11 +10,14 @@ import { API_BASE_URL, GOOGLE_PLACES_API_KEY } from "@env";
 import { getAuth } from 'firebase/auth';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import { GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 
 type InputBottomSheetProps = {
   userLocation: { latitude: number; longitude: number } | null;
   onRouteFetched: (coords: { latitude: number; longitude: number }[]) => void;
   onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
+  setIsModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  setModalItem: React.Dispatch<React.SetStateAction<AddressItem>>;
 };
 type Step = {
     html_instructions: string;
@@ -61,24 +64,96 @@ type InsideStackParam = {
   }
 };
 type NavigationProp = NativeStackNavigationProp<InsideStackParam>;
-type RecentItem = {
+type AddressItem = {
   label: string;
   address: string;
-  lat: number;
-  lng: number;
+  latitude: number;
+  longitude: number;
   place_id?: string;
   ts?: string;
 };
-const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, }) => {
+const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, setIsModalVisible, setModalItem}) => {
   const navigation = useNavigation<NavigationProp>();
-  const handlePinnedLocationPress = (): void => {
-      console.log("Favorite Pressed");
-  };
-  const handleLocationPress = async (item: RecentItem) => {
+  const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
+  const handleSearchBarSelection = async (data: any, details: any) => {
+    placesRef.current?.blur();
+    if (!details || !userLocation) return;
+
+    const destination = {
+        latitude: details.geometry.location.lat,
+        longitude: details.geometry.location.lng,
+    };
+
+    if (bottomSheetRef?.current) {
+        setTimeout(() => {
+            bottomSheetRef.current?.snapToIndex(1);
+        }, 50);
+    }
+
+    // Fetch route from Google Directions API
+    try {
+        const response = await fetch(
+            `https://maps.googleapis.com/maps/api/directions/json?origin=${userLocation.latitude},${userLocation.longitude}&destination=${destination.latitude},${destination.longitude}&key=${GOOGLE_PLACES_API_KEY}`
+        );
+
+        const dataJson = await response.json();
+        if (!dataJson.routes?.length) return;
+
+        const leg = dataJson.routes[0].legs[0]
+        const steps: Step[] = leg.steps;
+        const routeCoords = steps.flatMap((step: Step) =>
+            polyline.decode(step.polyline.points).map((p: [number, number]) => ({
+                latitude: p[0],
+                longitude: p[1],
+            }))
+        );
+        // const simplifiedRoute = routeCoords.filter((_, index) => index % 2 === 0);
+        const simplifiedRoute = routeCoords
+        
+        // Navigate to the NavPage + Pass all relevent data
+        navigation.navigate('NavigationPage', {
+            details,
+            destination,
+            simplifiedRoute: simplifiedRoute, 
+            etaDetails: {
+                etaText: leg.duration.text,
+                etaSeconds: leg.duration.value,
+                distanceText: leg.distance.text,
+                distanceMeters: leg.distance.value,
+            },
+            steps: dataJson.routes[0].legs[0].steps
+        });
+
+        // Adds Searched Locations to Recents
+        // Get Firebase ID token for authentication
+        const idToken = await getAuth().currentUser?.getIdToken();
+        
+        const postResponse = await fetch(`${API_BASE_URL}/api/users/recent`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+                label: details.name ?? details.formatted_address ?? "",
+                address: details.formatted_address ?? "", 
+                latitude: details.geometry.location.lat,
+                longitude: details.geometry.location.lng,
+            }),
+        });
+        const postJson = await postResponse.json();
+        console.log("Recent saved: ", postJson)
+
+        placesRef.current?.setAddressText('');
+    } catch (error) {
+        console.error("Failed to fetch route: ", error);
+    }
+  }
+  const handleLocationPress = async (item: AddressItem) => {
     if (!userLocation) return;
     const destination = {
-            latitude: item.lat,
-            longitude: item.lng,
+            latitude: item.latitude,
+            longitude: item.longitude,
         };
 
         if (bottomSheetRef?.current) {
@@ -106,7 +181,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       );
       // const simplifiedRoute = routeCoords.filter((_, index) => index % 2 === 0);
       const simplifiedRoute = routeCoords
-      
+
       // Navigate to the NavPage + Pass all relevent data
       navigation.navigate('NavigationPage', {
           details: item,
@@ -122,27 +197,118 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       });
 
       // Adds Searched Locations to Recents
-      const postResponse = await fetch(`${API_BASE_URL}/api/recents`, {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const postResponse = await fetch(`${API_BASE_URL}/api/users/recent`, {
           method: "POST",
           headers: {
               "Content-Type": "application/json",
-              "X-User-Id": `${getAuth().currentUser?.uid}`,
+              "Authorization": `Bearer ${idToken}`,
           },
           body: JSON.stringify({
               label: item.label ?? "",
               address: item.address ?? "", 
-              lat: item.lat,
-              lng: item.lng,
-              place_id: item.place_id,
+              latitude: item.latitude,
+              longitude: item.longitude,
           }),
       });
       const postJson = await postResponse.json();
       console.log("Recent saved: ", postJson)
 
-  } catch (error) {
-      console.error("Failed to fetch route: ", error);
-  }
+    } catch (error) {
+        console.error("Failed to fetch route: ", error);
+    }
   };
+  const handleRemoveSpecificRecent = async (item: any) => {
+    try {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/recent`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          label: item.label,
+          latitude: item.latitude,  
+          longitude: item.longitude,
+        }),
+      });
+      const result = await res.json();
+      console.log('Deleted specific recent:', result);
+      fetchRecents();
+    } catch(error){
+      console.log("Failed to delete recent item: ", error)
+    }
+  }
+  const handleRemoveAllRecents = async () => {
+    try {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/recent/all`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${idToken}`,
+        },
+      })
+      const result = await res.json();
+      console.log('Deleted successfully:', result);
+      fetchRecents();
+    } catch (error) {
+      console.error("Failed to delete recents: ", error);
+    }
+  }
+  
+  const handleRemoveSpecificFavorite = async (item: any) => {
+    try {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/favorites`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          label: item.label,
+          latitude: item.latitude,
+          longitude: item.longitude,
+        }),
+      });
+      const result = await res.json();
+      console.log('Deleted specific favorite:', result);
+      fetchFavorites();
+    } catch(error){
+      console.log("Failed to delete favorite item: ", error)
+    }
+  }
+  
+  const handleRemoveAllFavorites = async () => {
+    try {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/favorites/all`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${idToken}`,
+        },
+      })
+      const result = await res.json();
+      console.log('Deleted all favorites successfully:', result);
+      fetchFavorites();
+    } catch (error) {
+      console.error("Failed to delete favorites: ", error);
+    }
+  }
+  const handleAddPinnedClicked = () => {
+    if (bottomSheetRef?.current) {
+      bottomSheetRef.current?.snapToIndex(0);
+    }
+    setIsModalVisible(true)
+  }
+  const handleEditPinnedClicked = (item: AddressItem) => {
+    if (bottomSheetRef?.current) {
+      bottomSheetRef.current?.snapToIndex(0);
+    }
+    setModalItem(item)
+    setIsModalVisible(true)
+  }
   const { theme, colorScheme } = useTheme();
   const styles = createStyles(theme);
   
@@ -150,96 +316,64 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   const snapPoints = useMemo(() => ['11%', '40%', '87%'], []);
 
   const [distanceMetric, setDistanceMetric] = useState<string>("miles")
-  const [recents, setRecents] = useState<RecentItem[]>([]);
-  
-  // Loads Recents
-  useEffect(() => {
-    const fetchRecents = async () => {
+  const [recents, setRecents] = useState<AddressItem[]>([]);
+  const [favorites, setFavorites] = useState<AddressItem[]>([]);
+  const fetchFavorites = async () => {
+    try {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/favorites`, {
+        headers: {
+          "Authorization": `Bearer ${idToken}`,
+        },
+      });
+      const jsonRes = await res.json();
+      setFavorites(jsonRes.favorites || []);
+    } catch (error) {
+      console.log("Error fetching Favorites:", error)
+    }
+  }
+  const fetchRecents = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/recents?limit=10`, {
+        const idToken = await getAuth().currentUser?.getIdToken();
+        const res = await fetch(`${API_BASE_URL}/api/users/recent`, {
           headers: {
-            "X-User-Id": `${getAuth().currentUser!.uid}`,
+            "Authorization": `Bearer ${idToken}`,
           },
         });
-        const json = await res.json();
-        setRecents(json);
-      } catch (err) {
-        console.log("Error:", err);
+        const jsonRes = await res.json();
+        setRecents(jsonRes.recent || []);
+      } catch (error) {
+        console.log("Error fetching Recents:", error);
       }
     };
-
+  // Loads Recents
+  useEffect(() => {
     fetchRecents(); // initial load
+    const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
+    return () => clearInterval(interval);
+  }, []);
 
-    // const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
-    return //() => clearInterval(interval);
+  // Loads Favorites
+  useEffect(() => {
+    fetchFavorites(); // initial load
+    const interval = setInterval(fetchFavorites, 5000); // refresh every 5 sec
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     console.log("🔁 recents state updated:", recents);
   }, [recents]);
 
-  const pinnedLocationsMap = {
-    categories: [
-      {
-        name: '0000',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '8888',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '1111',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '2222',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '3333',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '4444',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '5555',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '6666',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-    ],
-  }
-
-  const [pinnedData, setPinnedData] = React.useState(pinnedLocationsMap);
+  const getIconForPinnedLabel = (label: string) => {
+    switch (label) {
+      case "Home":
+        return require("../../assets/house.png");
+      case "Work":
+        return require("../../assets/suitcase.png");
+      default:
+        return require("../../assets/location.png");
+    }
+  };
 
   return (
     <BottomSheet 
@@ -250,11 +384,15 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
     enableContentPanningGesture={false}
     style={styles.sheet}
     backgroundStyle={{ backgroundColor: theme.color }}
+    handleIndicatorStyle={{
+      backgroundColor: colorScheme === 'light' ? 'black' : 'white',
+    }}
     >
       <BottomSheetView style={styles.content}>
         <View>
           <AddressSearchBar
             userLocation={userLocation}
+            handleSearchBarSelection={handleSearchBarSelection}
             onRouteFetched={onRouteFetched}
             onDestinationSelected={(dest) => {
               onDestinationSelected?.(dest);
@@ -266,7 +404,13 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
         </View>
         {/* PINNED LOCATIONS */}
         <View style={styles.pinned_locations}>
-          <Text style={styles.sheet_title}>Pinned Locations📍</Text>
+          <View style={styles.title_container}>
+            <Text style={styles.sheet_title}>Pinned Locations📍</Text>
+            <TouchableOpacity onPress={handleRemoveAllFavorites}>
+              <Text style={styles.sheet_title}>Remove All</Text>
+            </TouchableOpacity>
+          </View>
+          
           <BottomSheetScrollView 
           horizontal 
           scrollEventThrottle={16} 
@@ -276,59 +420,72 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
           style={styles.pinned_locations_container}
           contentContainerStyle={styles.pinned_locations_container_inner}>
           
-            <TouchableOpacity 
-            onPress={handlePinnedLocationPress}
-            activeOpacity={0.75} 
-            style={styles.pinned_item}>
-              <View style={styles.pinned_icon_container}>
-                <Image style={styles.pinned_icon} source={require("../../assets/house.png")}/>
-              </View>
-              <Text style={styles.text}>Home</Text>
-              {distanceMetric === "km"
-                ? <Text style={styles.sub_text}>493km</Text>
-                : <Text style={styles.sub_text}>493mi</Text>
+            {favorites.map((item, index) => (
+              <View
+              key={index}
+              style={styles.pinned_item}
+              >
+                <TouchableOpacity
+                onPress={() => handleLocationPress(item)}
+                activeOpacity={0.75}
+                style={styles.pinned_item}>
+                  <View style={styles.pinned_icon_container}>
+                    <Image style={styles.pinned_icon} source={getIconForPinnedLabel(item.label)}/>
+                  </View>
+                  <Text style={styles.text}>{item.label}</Text>
+                  {userLocation && item.latitude && item.longitude ? (
+                    distanceMetric === "km"
+                      ? <Text style={styles.sub_text}>
+                          {(getDistance(userLocation, { latitude: item.latitude, longitude: item.longitude }) / 1000).toFixed(1)} km
+                        </Text>
+                      : <Text style={styles.sub_text}>
+                          {(getDistance(userLocation, { latitude: item.latitude, longitude: item.longitude }) / 1000 * 0.621371).toFixed(1)} mi
+                        </Text>
+                  ) : (
+                    <></>
+                  )}
+                </TouchableOpacity>
+
+                {/* Delete Icon */}
+                {
+                  (item.label != "Work" && item.label != "Home") 
+                  ? (
+                    <TouchableOpacity 
+                    onPress={() => handleRemoveSpecificFavorite(item)}
+                    activeOpacity={0.6}
+                    style={styles.delete_container}>
+                      {
+                      colorScheme === 'light' 
+                      ? <Image style={styles.delete_icon_pinned} source={require("../../assets/delete.png")}/>
+                      : <Image style={styles.delete_icon_pinned} source={require("../../assets/delete_white.png")}/>
+                      }
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                    onPress={() => handleEditPinnedClicked(item)}
+                    activeOpacity={0.6}
+                    style={styles.delete_container}>
+                      {
+                      colorScheme === 'light' 
+                      ? <Image style={styles.delete_icon_pinned} source={require("../../assets/edit_icon.png")}/>
+                      : <Image style={styles.delete_icon_pinned} source={require("../../assets/edit_icon_white.png")}/>
+                      }
+                    </TouchableOpacity>
+                  )
                 }
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-            onPress={handlePinnedLocationPress}
-            activeOpacity={0.75} 
-            style={styles.pinned_item}>
-              <View style={styles.pinned_icon_container}>
-                <Image style={styles.pinned_icon} source={require("../../assets/suitcase.png")}/>
+                
+                {/* If home or work have no values and there are favorites added (excluding Home / Work) add 
+                padding so they match up with the other favorites, if they do have values then do not add padding*/}
+                {
+                  ((item.label == "Work" || item.label == "Home") && (!item.latitude && !item.longitude) && favorites.length > 2)
+                  ? <Text></Text> : <></>
+                }
+
+                
               </View>
-              <Text style={styles.text}>Work</Text>
-              {distanceMetric === "km"
-                ? <Text style={styles.sub_text}>493km</Text>
-                : <Text style={styles.sub_text}>493mi</Text>
-              }
-            </TouchableOpacity>
-            
-            {pinnedData.categories.map((category, index) => (
-              <TouchableOpacity
-              key={index} 
-              onPress={handlePinnedLocationPress}
-              activeOpacity={0.75} 
-              style={styles.pinned_item}>
-                <View style={styles.pinned_icon_container}>
-                  <Image style={styles.pinned_icon} source={require("../../assets/location.png")}/>
-                </View>
-                <Text style={styles.text}>{category.name}</Text>
-                {userLocation && category.location ? (
-                  distanceMetric === "km"
-                    ? <Text style={styles.sub_text}>
-                        {(getDistance(userLocation, category.location) / 1000).toFixed(1)} km
-                      </Text>
-                    : <Text style={styles.sub_text}>
-                        {(getDistance(userLocation, category.location) / 1000 * 0.621371).toFixed(1)} mi
-                      </Text>
-                ) : (
-                  <Text></Text>
-                )}
-              </TouchableOpacity>
             ))}
             <TouchableOpacity 
-              // onPress={}
+              onPress={handleAddPinnedClicked}
               activeOpacity={0.75} 
               style={styles.pinned_item}>
               <View style={styles.pinned_icon_container}>
@@ -340,7 +497,12 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
                 
               </View>
               <Text style={styles.text}>Add</Text>
-              <Text></Text>
+
+              {/* If there are any favorites (excluding Home / Work) add 2 layers of padding below 
+              add button (distand + delete icon) if not, only add 1 layer (edit icon)*/}
+              {
+              favorites.length > 2 ? <View><Text></Text><Text></Text></View> : <Text></Text>
+              }
             </TouchableOpacity>
             
           </BottomSheetScrollView>
@@ -348,7 +510,13 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
 
         {/* RECENT LOCATIONS */}
         <View style={styles.recents}>
-          <Text style={styles.sheet_title}>Recents🔄</Text>
+          <View style={styles.title_container}>
+            <Text style={styles.sheet_title}>Recents🔄</Text>
+            <TouchableOpacity onPress={handleRemoveAllRecents}>
+              <Text style={styles.sheet_title}>Remove All</Text>
+            </TouchableOpacity>
+          </View>
+          
           <BottomSheetScrollView 
           vertical
           scrollEventThrottle={16} 
@@ -359,31 +527,35 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
           contentContainerStyle={styles.recents_container_inner}>
 
             {recents.map((item, index) => (
-              <TouchableOpacity 
-              key={index}
-              onPress={() => handleLocationPress(item)}
-              activeOpacity={0.6} 
-              style={styles.recent_item}>
-                <View style={styles.recent_icon_container}>
-                  <Image style={styles.recent_icon} source={require("../../assets/location.png")}/>
-                </View>
-                <View  style={styles.recent_info}>
-                  <Text style={styles.text}>{item.label}</Text>
-                  <Text style={styles.text}>{item.address}</Text>
-                </View>
-                
-              </TouchableOpacity>
-            ))}
+              <View style={styles.recent_item}
+              key={index}>
+                <TouchableOpacity 
+                onPress={() => handleLocationPress(item)}
+                activeOpacity={0.6} 
+                style={styles.item_info}>
+                  <View style={styles.recent_icon_container}>
+                    <Image style={styles.recent_icon} source={require("../../assets/location.png")}/>
+                  </View>
+                  <View  style={styles.recent_info}>
+                    <Text style={styles.text}>{item.label}</Text>
+                    <Text style={styles.text}>{item.address}</Text>
+                  </View> 
+                </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.recent_item, { borderBottomWidth: 0 }]}>
-              <View>
-                <Image style={styles.recent_icon}/>
+                {/* Delete Icon */}
+
+                <TouchableOpacity 
+                onPress={() => handleRemoveSpecificRecent(item)}
+                activeOpacity={0.6}
+                style={styles.delete_container}>
+                  {
+                  colorScheme === 'light' 
+                  ? <Image style={styles.delete_icon} source={require("../../assets/delete.png")}/>
+                  : <Image style={styles.delete_icon} source={require("../../assets/delete_white.png")}/>
+                  }
+                </TouchableOpacity>
               </View>
-              <View  style={styles.recent_info}>
-                <Text style={styles.text}></Text>
-                <Text style={styles.text}></Text>
-              </View>
-            </TouchableOpacity>
+            ))}
 
           </BottomSheetScrollView>
         </View>
@@ -398,7 +570,6 @@ const createStyles = (theme : any) =>
   StyleSheet.create({
     sheet: {
       zIndex: 10000,
-      flex: 1,
 
       shadowColor: theme.import_bottom.shadowColor,
       shadowOpacity: theme.import_bottom.shadowOpacity,
@@ -406,10 +577,14 @@ const createStyles = (theme : any) =>
       shadowOffset: theme.import_bottom.shadowOffset,
     },
     content: {
-      flex: 1,
       padding: 16,
       flexDirection: 'column',
       gap: 15,
+    },
+    title_container: {
+      flex: 1,
+      flexDirection: 'row',
+      justifyContent:'space-between',
     },
     sheet_title: {
       color: theme.textColor,
@@ -420,7 +595,7 @@ const createStyles = (theme : any) =>
       flexDirection: 'column',
     },
     pinned_locations_container: {
-      height: 120,
+      height: 140,
       borderRadius: 10,
       backgroundColor: theme.sheetShading1,
     },
@@ -456,10 +631,24 @@ const createStyles = (theme : any) =>
     recents: {
       flexDirection: 'column',
     },
+    delete_container: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingRight: 10,
+    },
+    delete_icon: {
+      height: 25,
+      width: 25,
+    },
+    delete_icon_pinned: {
+      height: 20,
+      width: 20,
+    },
     recents_container: {
+      flexGrow: 0,
       borderRadius: 10,
       backgroundColor: theme.sheetShading1,
-      height: 500,
+      maxHeight: 475,
     },
     recents_container_inner: {
       justifyContent: "center",
@@ -472,6 +661,11 @@ const createStyles = (theme : any) =>
       borderBottomWidth: 1,
       justifyContent: 'center',
       paddingVertical: 10,
+    },
+    item_info: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      flex: 1,
     },
     recent_icon_container: {
       flexDirection:"column",
