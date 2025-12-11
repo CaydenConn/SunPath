@@ -341,15 +341,15 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   // Loads Recents
   useEffect(() => {
     fetchRecents(); // initial load
-    // const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
-    return // () => clearInterval(interval);
+    const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
+    return () => clearInterval(interval);
   }, []);
 
   // Loads Favorites
   useEffect(() => {
     fetchFavorites(); // initial load
-    // const interval = setInterval(fetchFavorites, 5000); // refresh every 5 sec
-    return //() => clearInterval(interval);
+    const interval = setInterval(fetchFavorites, 5000); // refresh every 5 sec
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -411,27 +411,68 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
           contentContainerStyle={styles.pinned_locations_container_inner}>
           
             {favorites.map((item, index) => (
-              <TouchableOpacity
-              key={index} 
-              onPress={() => handleLocationPress(item)}
-              activeOpacity={0.75} 
-              style={styles.pinned_item}>
-                <View style={styles.pinned_icon_container}>
-                  <Image style={styles.pinned_icon} source={getIconForPinnedLabel(item.label)}/>
-                </View>
-                <Text style={styles.text}>{item.label}</Text>
-                {userLocation && item.latitude && item.longitude ? (
-                  distanceMetric === "km"
-                    ? <Text style={styles.sub_text}>
-                        {(getDistance(userLocation, { latitude: item.latitude, longitude: item.longitude }) / 1000).toFixed(1)} km
-                      </Text>
-                    : <Text style={styles.sub_text}>
-                        {(getDistance(userLocation, { latitude: item.latitude, longitude: item.longitude }) / 1000 * 0.621371).toFixed(1)} mi
-                      </Text>
-                ) : (
-                  <Text></Text>
-                )}
-              </TouchableOpacity>
+              <View
+              key={index}
+              style={styles.pinned_item}
+              >
+                <TouchableOpacity
+                onPress={() => handleLocationPress(item)}
+                activeOpacity={0.75}
+                style={styles.pinned_item}>
+                  <View style={styles.pinned_icon_container}>
+                    <Image style={styles.pinned_icon} source={getIconForPinnedLabel(item.label)}/>
+                  </View>
+                  <Text style={styles.text}>{item.label}</Text>
+                  {userLocation && item.latitude && item.longitude ? (
+                    distanceMetric === "km"
+                      ? <Text style={styles.sub_text}>
+                          {(getDistance(userLocation, { latitude: item.latitude, longitude: item.longitude }) / 1000).toFixed(1)} km
+                        </Text>
+                      : <Text style={styles.sub_text}>
+                          {(getDistance(userLocation, { latitude: item.latitude, longitude: item.longitude }) / 1000 * 0.621371).toFixed(1)} mi
+                        </Text>
+                  ) : (
+                    <></>
+                  )}
+                </TouchableOpacity>
+
+                {/* Delete Icon */}
+                {
+                  (item.label != "Work" && item.label != "Home") 
+                  ? (
+                    <TouchableOpacity 
+                    onPress={() => handleRemoveSpecificFavorite(item)}
+                    activeOpacity={0.6}
+                    style={styles.delete_container}>
+                      {
+                      colorScheme === 'light' 
+                      ? <Image style={styles.delete_icon_pinned} source={require("../../assets/delete.png")}/>
+                      : <Image style={styles.delete_icon_pinned} source={require("../../assets/delete_white.png")}/>
+                      }
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                    onPress={() => handleRemoveSpecificFavorite(item)}
+                    activeOpacity={0.6}
+                    style={styles.delete_container}>
+                      {
+                      colorScheme === 'light' 
+                      ? <Image style={styles.delete_icon_pinned} source={require("../../assets/edit_icon.png")}/>
+                      : <Image style={styles.delete_icon_pinned} source={require("../../assets/edit_icon_white.png")}/>
+                      }
+                    </TouchableOpacity>
+                  )
+                }
+                
+                {/* If home or work have no values and there are favorites added (excluding Home / Work) add 
+                padding so they match up with the other favorites, if they do have values then do not add padding*/}
+                {
+                  ((item.label == "Work" || item.label == "Home") && (!item.latitude && !item.longitude) && favorites.length > 2)
+                  ? <Text></Text> : <></>
+                }
+
+                
+              </View>
             ))}
             <TouchableOpacity 
               onPress={handleAddPinnedClicked}
@@ -446,7 +487,12 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
                 
               </View>
               <Text style={styles.text}>Add</Text>
-              <Text></Text>
+
+              {/* If there are any favorites (excluding Home / Work) add 2 layers of padding below 
+              add button (distand + delete icon) if not, only add 1 layer (edit icon)*/}
+              {
+              favorites.length > 2 ? <View><Text></Text><Text></Text></View> : <Text></Text>
+              }
             </TouchableOpacity>
             
           </BottomSheetScrollView>
@@ -485,6 +531,9 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
                     <Text style={styles.text}>{item.address}</Text>
                   </View> 
                 </TouchableOpacity>
+
+                {/* Delete Icon */}
+
                 <TouchableOpacity 
                 onPress={() => handleRemoveSpecificRecent(item)}
                 activeOpacity={0.6}
@@ -511,7 +560,6 @@ const createStyles = (theme : any) =>
   StyleSheet.create({
     sheet: {
       zIndex: 10000,
-      flex: 1,
 
       shadowColor: theme.import_bottom.shadowColor,
       shadowOpacity: theme.import_bottom.shadowOpacity,
@@ -519,7 +567,6 @@ const createStyles = (theme : any) =>
       shadowOffset: theme.import_bottom.shadowOffset,
     },
     content: {
-      flex: 1,
       padding: 16,
       flexDirection: 'column',
       gap: 15,
@@ -538,7 +585,7 @@ const createStyles = (theme : any) =>
       flexDirection: 'column',
     },
     pinned_locations_container: {
-      height: 120,
+      height: 140,
       borderRadius: 10,
       backgroundColor: theme.sheetShading1,
     },
@@ -583,10 +630,15 @@ const createStyles = (theme : any) =>
       height: 25,
       width: 25,
     },
+    delete_icon_pinned: {
+      height: 20,
+      width: 20,
+    },
     recents_container: {
+      flexGrow: 0,
       borderRadius: 10,
       backgroundColor: theme.sheetShading1,
-      height: 500,
+      maxHeight: 475,
     },
     recents_container_inner: {
       justifyContent: "center",
