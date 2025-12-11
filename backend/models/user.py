@@ -115,8 +115,14 @@ class User:
         return False
     
     def clear_favorite_addresses(self) -> None:
-        """Clear all favorite addresses"""
-        self.favorite_addresses = []
+        """
+        Clear all favorite addresses except Home and Work defaults.
+        Maintains Home and Work entries if they exist (whether filled or placeholders).
+        """
+        self.favorite_addresses = [
+            addr for addr in self.favorite_addresses
+            if addr.label in ["Home", "Work"]
+        ]
         self.updated_at = datetime.utcnow().isoformat()
     
     def add_recent_address(self, address: Address, max_recent: int = 10) -> None:

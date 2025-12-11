@@ -132,7 +132,7 @@ def delete_user_profile(uid):
 
 @users_bp.route('/favorites', methods=['GET'])
 @verify_firebase_token
-def get_favorites(uid):
+def get_favorites(uid): 
     """
     Get user's favorite addresses
     """
@@ -264,7 +264,7 @@ def clear_favorites(uid):
         
         return jsonify({
             'message': 'All favorites cleared successfully',
-            'favorites': []
+            'favorites': [addr.to_dict() for addr in user.favorite_addresses]
         }), 200
         
     except Exception as e:
