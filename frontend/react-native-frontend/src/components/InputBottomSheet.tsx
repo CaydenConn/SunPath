@@ -17,6 +17,7 @@ type InputBottomSheetProps = {
   onRouteFetched: (coords: { latitude: number; longitude: number }[]) => void;
   onDestinationSelected?: (dest: { latitude: number; longitude: number }) => void;
   setIsModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  setModalItem: React.Dispatch<React.SetStateAction<AddressItem>>;
 };
 type Step = {
     html_instructions: string;
@@ -71,7 +72,7 @@ type AddressItem = {
   place_id?: string;
   ts?: string;
 };
-const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, setIsModalVisible}) => {
+const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRouteFetched, onDestinationSelected, setIsModalVisible, setModalItem}) => {
   const navigation = useNavigation<NavigationProp>();
   const placesRef = useRef<GooglePlacesAutocompleteRef>(null);
   const handleSearchBarSelection = async (data: any, details: any) => {
@@ -301,6 +302,13 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
     }
     setIsModalVisible(true)
   }
+  const handleEditPinnedClicked = (item: AddressItem) => {
+    if (bottomSheetRef?.current) {
+      bottomSheetRef.current?.snapToIndex(0);
+    }
+    setModalItem(item)
+    setIsModalVisible(true)
+  }
   const { theme, colorScheme } = useTheme();
   const styles = createStyles(theme);
   
@@ -355,6 +363,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   useEffect(() => {
     console.log("🔁 recents state updated:", recents);
   }, [recents]);
+
   const getIconForPinnedLabel = (label: string) => {
     switch (label) {
       case "Home":
@@ -364,7 +373,8 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       default:
         return require("../../assets/location.png");
     }
-};
+  };
+
   return (
     <BottomSheet 
     ref={bottomSheetRef}
@@ -452,7 +462,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity 
-                    onPress={() => handleRemoveSpecificFavorite(item)}
+                    onPress={() => handleEditPinnedClicked(item)}
                     activeOpacity={0.6}
                     style={styles.delete_container}>
                       {

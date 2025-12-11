@@ -30,6 +30,15 @@ type PinnedCoordsParams = {
     lng: number | null;
 }
 
+type AddressItem = {
+  label: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  place_id?: string;
+  ts?: string;
+};
+
 // Props for MainPage
 type MainPageProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MainPage'>;
@@ -46,6 +55,14 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
         address: "",
         lat: null,
         lng: null
+    })
+    const [item, setItem] = useState<AddressItem>({
+        label: "",
+        address: "",
+        latitude: 0,
+        longitude: 0,
+        place_id: undefined,
+        ts: undefined,
     })
 
     const mapRef = useRef<MapRef>(null);
@@ -86,29 +103,71 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
     const handleCreatePinClicked = async () => {
         try {
             const idToken = await FIREBASE_AUTH.currentUser?.getIdToken();
-            const postResponse = await fetch(`${API_BASE_URL}/api/users/favorites`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${idToken}`,
-                },
-                body: JSON.stringify({
-                    label: pinnedLabel ?? "",
+            if (!idToken) throw new Error("No auth token");
+            
+            if(item.label === "Home" || item.label === "Work"){
+                // Creating Endpoint Based on Item Passed Through
+                let endpoint = "/api/users/favorites";
+                if (item?.label === "Home") endpoint += "/home";
+                if (item?.label === "Work") endpoint += "/work";
+
+                const body = {
                     address: pinnedCoords.address ?? "", 
                     latitude: pinnedCoords.lat,
                     longitude: pinnedCoords.lng,
-                }),
-            });
-            const postJson = await postResponse.json();
-            console.log("Pinned saved: ", postJson)
+                }
+                const postResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${idToken}`,
+                    },
+                    body: JSON.stringify(body),
+                })
+                const postJson = await postResponse.json();
+                console.log("Home Pin Edited: ", postJson)
 
-            setPinnedCoords({
-                address: "",
-                lat: null,
-                lng: null,
-            })
-            setPinnedLabel(undefined)
-            setIsModalVisible(false)
+                // Cleanup
+                setItem({
+                    label: "",
+                    address: "",
+                    latitude: 0,
+                    longitude: 0,
+                    place_id: undefined,
+                    ts: undefined,
+                })
+                setPinnedCoords({
+                    address: "",
+                    lat: null,
+                    lng: null,
+                })
+                setPinnedLabel(undefined)
+                setIsModalVisible(false)
+            }else{
+                const postResponse = await fetch(`${API_BASE_URL}/api/users/favorites`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${idToken}`,
+                    },
+                    body: JSON.stringify({
+                        label: pinnedLabel ?? "",
+                        address: pinnedCoords.address ?? "", 
+                        latitude: pinnedCoords.lat,
+                        longitude: pinnedCoords.lng,
+                    }),
+                });
+                const postJson = await postResponse.json();
+                console.log("Pinned saved: ", postJson)
+
+                setPinnedCoords({
+                    address: "",
+                    lat: null,
+                    lng: null,
+                })
+                setPinnedLabel(undefined)
+                setIsModalVisible(false)
+            }
         }catch(error){
             console.log("Failed to add Pinned location: ", error)
         }
@@ -133,6 +192,7 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
             onRouteFetched={setRouteCoordinates} 
             onDestinationSelected={setDestination}
             setIsModalVisible={setIsModalVisible}
+            setModalItem={setItem}
             />
 
 
@@ -160,7 +220,12 @@ const MainPage : React.FC<MainPageProps> = ({ navigation }) => {
                         onChangeText={setPinnedLabel}
                         style={styles.textInput}
                         placeholderTextColor={theme.textColor}
-                        placeholder={pinnedLabel ?? "Enter Label"}/>
+                        placeholder={
+                            ( item.label === "Work" || item.label === "Home" )
+                            ? item.label 
+                            : pinnedLabel ?? "Enter Label"
+                        }
+                        editable={!(item?.label === "Home" || item?.label === "Work")}/>
                     </View>
                     <View style={styles.modal_content_container}>
                         <Text style={styles.modal_subtitle}>Address</Text>
