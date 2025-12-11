@@ -63,11 +63,11 @@ type InsideStackParam = {
   }
 };
 type NavigationProp = NativeStackNavigationProp<InsideStackParam>;
-type RecentItem = {
+type AddressItem = {
   label: string;
   address: string;
-  lat: number;
-  lng: number;
+  latitude: number;
+  longitude: number;
   place_id?: string;
   ts?: string;
 };
@@ -148,14 +148,11 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
         console.error("Failed to fetch route: ", error);
     }
   }
-  const handlePinnedLocationPress = (): void => {
-      console.log("Favorite Pressed");
-  };
-  const handleLocationPress = async (item: RecentItem) => {
+  const handleLocationPress = async (item: AddressItem) => {
     if (!userLocation) return;
     const destination = {
-            latitude: item.latitude || item.lat,
-            longitude: item.longitude || item.lng,
+            latitude: item.latitude,
+            longitude: item.longitude,
         };
 
         if (bottomSheetRef?.current) {
@@ -183,7 +180,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       );
       // const simplifiedRoute = routeCoords.filter((_, index) => index % 2 === 0);
       const simplifiedRoute = routeCoords
-      
+
       // Navigate to the NavPage + Pass all relevent data
       navigation.navigate('NavigationPage', {
           details: item,
@@ -209,8 +206,8 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
           body: JSON.stringify({
               label: item.label ?? "",
               address: item.address ?? "", 
-              latitude: item.latitude || item.lat,
-              longitude: item.longitude || item.lng,
+              latitude: item.latitude,
+              longitude: item.longitude,
           }),
       });
       const postJson = await postResponse.json();
@@ -231,8 +228,8 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
         },
         body: JSON.stringify({
           label: item.label,
-          latitude: item.latitude || item.lat,  // Support both field names
-          longitude: item.longitude || item.lng, // Support both field names
+          latitude: item.latitude,  
+          longitude: item.longitude,
         }),
       });
       const result = await res.json();
@@ -276,7 +273,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       });
       const result = await res.json();
       console.log('Deleted specific favorite:', result);
-      // fetchFavorites(); // Uncomment when you add fetchFavorites function
+      fetchFavorites();
     } catch(error){
       console.log("Failed to delete favorite item: ", error)
     }
@@ -293,7 +290,7 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
       })
       const result = await res.json();
       console.log('Deleted all favorites successfully:', result);
-      // fetchFavorites(); // Uncomment when you add fetchFavorites function
+      fetchFavorites();
     } catch (error) {
       console.error("Failed to delete favorites: ", error);
     }
@@ -311,7 +308,22 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
   const snapPoints = useMemo(() => ['11%', '40%', '87%'], []);
 
   const [distanceMetric, setDistanceMetric] = useState<string>("miles")
-  const [recents, setRecents] = useState<RecentItem[]>([]);
+  const [recents, setRecents] = useState<AddressItem[]>([]);
+  const [favorites, setFavorites] = useState<AddressItem[]>([]);
+  const fetchFavorites = async () => {
+    try {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/favorites`, {
+        headers: {
+          "Authorization": `Bearer ${idToken}`,
+        },
+      });
+      const jsonRes = await res.json();
+      setFavorites(jsonRes.favorites || []);
+    } catch (error) {
+      console.log("Error fetching Favorites:", error)
+    }
+  }
   const fetchRecents = async () => {
       try {
         const idToken = await getAuth().currentUser?.getIdToken();
@@ -320,86 +332,39 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
             "Authorization": `Bearer ${idToken}`,
           },
         });
-        const json = await res.json();
-        setRecents(json.recent || []);
-      } catch (err) {
-        console.log("Error:", err);
+        const jsonRes = await res.json();
+        setRecents(jsonRes.recent || []);
+      } catch (error) {
+        console.log("Error fetching Recents:", error);
       }
     };
   // Loads Recents
   useEffect(() => {
     fetchRecents(); // initial load
     // const interval = setInterval(fetchRecents, 5000); // refresh every 5 sec
+    return // () => clearInterval(interval);
+  }, []);
+
+  // Loads Favorites
+  useEffect(() => {
+    fetchFavorites(); // initial load
+    // const interval = setInterval(fetchFavorites, 5000); // refresh every 5 sec
     return //() => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     console.log("🔁 recents state updated:", recents);
   }, [recents]);
-
-  const pinnedLocationsMap = {
-    categories: [
-      {
-        name: '0000',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '8888',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '1111',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '2222',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '3333',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '4444',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '5555',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-      {
-        name: '6666',
-        location: {
-          latitude: 26.127987,
-          longitude: -80.224480
-        }
-      },
-    ],
-  }
-
-  const [pinnedData, setPinnedData] = React.useState(pinnedLocationsMap);
-
+  const getIconForPinnedLabel = (label: string) => {
+    switch (label) {
+      case "Home":
+        return require("../../assets/house.png");
+      case "Work":
+        return require("../../assets/suitcase.png");
+      default:
+        return require("../../assets/location.png");
+    }
+};
   return (
     <BottomSheet 
     ref={bottomSheetRef}
@@ -445,51 +410,23 @@ const InputBottomSheet: React.FC<InputBottomSheetProps> = ({ userLocation, onRou
           style={styles.pinned_locations_container}
           contentContainerStyle={styles.pinned_locations_container_inner}>
           
-            <TouchableOpacity 
-            onPress={handlePinnedLocationPress}
-            activeOpacity={0.75} 
-            style={styles.pinned_item}>
-              <View style={styles.pinned_icon_container}>
-                <Image style={styles.pinned_icon} source={require("../../assets/house.png")}/>
-              </View>
-              <Text style={styles.text}>Home</Text>
-              {distanceMetric === "km"
-                ? <Text style={styles.sub_text}>493km</Text>
-                : <Text style={styles.sub_text}>493mi</Text>
-                }
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-            onPress={handlePinnedLocationPress}
-            activeOpacity={0.75} 
-            style={styles.pinned_item}>
-              <View style={styles.pinned_icon_container}>
-                <Image style={styles.pinned_icon} source={require("../../assets/suitcase.png")}/>
-              </View>
-              <Text style={styles.text}>Work</Text>
-              {distanceMetric === "km"
-                ? <Text style={styles.sub_text}>493km</Text>
-                : <Text style={styles.sub_text}>493mi</Text>
-              }
-            </TouchableOpacity>
-            
-            {pinnedData.categories.map((category, index) => (
+            {favorites.map((item, index) => (
               <TouchableOpacity
               key={index} 
-              onPress={handlePinnedLocationPress}
+              onPress={() => handleLocationPress(item)}
               activeOpacity={0.75} 
               style={styles.pinned_item}>
                 <View style={styles.pinned_icon_container}>
-                  <Image style={styles.pinned_icon} source={require("../../assets/location.png")}/>
+                  <Image style={styles.pinned_icon} source={getIconForPinnedLabel(item.label)}/>
                 </View>
-                <Text style={styles.text}>{category.name}</Text>
-                {userLocation && category.location ? (
+                <Text style={styles.text}>{item.label}</Text>
+                {userLocation && item.latitude && item.longitude ? (
                   distanceMetric === "km"
                     ? <Text style={styles.sub_text}>
-                        {(getDistance(userLocation, category.location) / 1000).toFixed(1)} km
+                        {(getDistance(userLocation, { latitude: item.latitude, longitude: item.longitude }) / 1000).toFixed(1)} km
                       </Text>
                     : <Text style={styles.sub_text}>
-                        {(getDistance(userLocation, category.location) / 1000 * 0.621371).toFixed(1)} mi
+                        {(getDistance(userLocation, { latitude: item.latitude, longitude: item.longitude }) / 1000 * 0.621371).toFixed(1)} mi
                       </Text>
                 ) : (
                   <Text></Text>
