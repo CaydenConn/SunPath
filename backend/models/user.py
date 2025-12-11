@@ -73,6 +73,26 @@ class User:
             recent_addresses=recent_addresses
         )
     
+    def update_favorite_by_label(self, label: str, address: Address) -> bool:
+        """
+        Update a favorite address by its label.
+        If an address with the label exists (placeholder or not), it is replaced.
+        If it doesn't exist, it is added.
+        """
+        # Enforce label consistency
+        address.label = label
+        
+        for i, fav in enumerate(self.favorite_addresses):
+            if fav.label == label:
+                self.favorite_addresses[i] = address
+                self.updated_at = datetime.utcnow().isoformat()
+                return True
+        
+        # If not found, add it
+        self.favorite_addresses.append(address)
+        self.updated_at = datetime.utcnow().isoformat()
+        return True
+
     def add_favorite_address(self, address: Address) -> None:
         """
         Add an address to favorites (avoids duplicates based on coordinates or label)

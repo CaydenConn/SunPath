@@ -235,6 +235,26 @@ def add_favorite_address(uid: str, address: Address) -> Optional[User]:
     return result
 
 
+def update_favorite_address_by_label(uid: str, label: str, address: Address) -> Optional[User]:
+    """
+    Update a favorite address by label (e.g. "Home", "Work")
+    
+    Args:
+        uid: Firebase Auth UID
+        label: Label to update
+        address: New Address object
+        
+    Returns:
+        Updated User object or None if user not found
+    """
+    user = get_user(uid)
+    if user is None:
+        return None
+    
+    user.update_favorite_by_label(label, address)
+    return update_user(user)
+
+
 def remove_favorite_address(uid: str, label: str, latitude: Optional[float], longitude: Optional[float]) -> Optional[User]:
     """
     Remove a favorite address for a user by label and coordinates

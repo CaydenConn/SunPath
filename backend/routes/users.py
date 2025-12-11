@@ -5,7 +5,7 @@ from datetime import datetime
 from models.database import (
     create_user, get_user, update_user, delete_user, user_exists,
     add_favorite_address, remove_favorite_address, clear_all_favorites, add_recent_address,
-    get_user_favorites, get_user_recent
+    get_user_favorites, get_user_recent, update_favorite_address_by_label
 )
 from models.user import Address
 
@@ -210,6 +210,86 @@ def add_favorite(uid):
         import traceback
         traceback.print_exc()
         return jsonify({'error': 'Failed to add favorite', 'details': str(e)}), 500
+
+
+@users_bp.route('/favorites/home', methods=['POST'])
+@verify_firebase_token
+def update_home_favorite(uid):
+    """
+    Update Home favorite address
+    
+    Request body:
+    {
+        "address": "123 Main St, City, State",
+        "latitude": 30.4383,
+        "longitude": -84.2807
+    }
+    """
+    data = request.get_json()
+    
+    if not data or 'address' not in data or 'latitude' not in data or 'longitude' not in data:
+        return jsonify({'error': 'Address, latitude, and longitude are required'}), 400
+    
+    try:
+        address = Address(
+            address=data['address'],
+            latitude=data['latitude'],
+            longitude=data['longitude'],
+            label="Home"
+        )
+        
+        user = update_favorite_address_by_label(uid, "Home", address)
+        
+        if user is None:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({
+            'message': 'Home address updated successfully',
+            'favorites': [addr.to_dict() for addr in user.favorite_addresses]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to update Home address', 'details': str(e)}), 500
+
+
+@users_bp.route('/favorites/work', methods=['POST'])
+@verify_firebase_token
+def update_work_favorite(uid):
+    """
+    Update Work favorite address
+    
+    Request body:
+    {
+        "address": "456 Work St, City, State",
+        "latitude": 30.4383,
+        "longitude": -84.2807
+    }
+    """
+    data = request.get_json()
+    
+    if not data or 'address' not in data or 'latitude' not in data or 'longitude' not in data:
+        return jsonify({'error': 'Address, latitude, and longitude are required'}), 400
+    
+    try:
+        address = Address(
+            address=data['address'],
+            latitude=data['latitude'],
+            longitude=data['longitude'],
+            label="Work"
+        )
+        
+        user = update_favorite_address_by_label(uid, "Work", address)
+        
+        if user is None:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({
+            'message': 'Work address updated successfully',
+            'favorites': [addr.to_dict() for addr in user.favorite_addresses]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to update Work address', 'details': str(e)}), 500
 
 
 @users_bp.route('/favorites', methods=['DELETE'])
