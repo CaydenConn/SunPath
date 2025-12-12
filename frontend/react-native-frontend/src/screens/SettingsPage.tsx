@@ -10,13 +10,13 @@ const STORAGE_KEY = 'accountSettings';
 
 const DEFAULT_VALUES: SettingsValues = {
   theme: 'system',
-  units: 'metric',
   mapType: 'standard',
   routePreference: 'fastest',
   voiceGuidance: true,
   avoidTolls: false,
   avoidHighways: false,
   notifications: { dailySummary: false, severeAlerts: true },
+  drivingConditions: { day: true, night: true, rain: true, snow: false },
 };
 
 const SettingsPage: React.FC = () => {
@@ -29,8 +29,14 @@ const SettingsPage: React.FC = () => {
   );
 
   const mergeNested = useCallback(
-    (_ns: 'notifications', patch: Partial<SettingsValues['notifications']>) => {
-      setValues((prev) => ({ ...prev, notifications: { ...prev.notifications, ...patch } }));
+    <K extends 'notifications' | 'drivingConditions'>(
+      ns: K, 
+      patch: Partial<SettingsValues[K]>
+    ) => {
+      setValues((prev) => ({ 
+        ...prev, 
+        [ns]: { ...prev[ns], ...patch } 
+      }));
     },
     []
   );
@@ -87,6 +93,7 @@ const SettingsPage: React.FC = () => {
             ...prev,
             ...parsed,
             notifications: { ...prev.notifications, ...(parsed.notifications ?? {}) },
+            drivingConditions: { ...prev.drivingConditions, ...(parsed.drivingConditions ?? {}) },
           }));
         }
       } catch {}
