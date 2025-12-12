@@ -6,7 +6,6 @@ import {
 } from 'react-native';
 
 export type ThemeOption = 'system' | 'light' | 'dark';
-export type UnitsOption = 'metric' | 'imperial';
 export type MapTypeOption = 'standard' | 'satellite' | 'terrain';
 export type RoutePreference = 'fastest' | 'shortest' | 'scenic';
 
@@ -15,9 +14,9 @@ type InsideStackParam = {
     SettingsPage: undefined;
   };
 type NavigationProp = NativeStackNavigationProp<InsideStackParam>;
+
 export interface SettingsValues {
   theme: ThemeOption;
-  units: UnitsOption;
   mapType: MapTypeOption;
   routePreference: RoutePreference;
   voiceGuidance: boolean;
@@ -26,6 +25,12 @@ export interface SettingsValues {
   notifications: {
     dailySummary: boolean;
     severeAlerts: boolean;
+  };
+  drivingConditions: {
+    day: boolean;
+    night: boolean;
+    rain: boolean;
+    snow: boolean;
   };
 }
 
@@ -39,7 +44,10 @@ export interface SettingsProps {
   values: SettingsValues;
   profile?: ProfileInfo;
   onChange: (patch: Partial<SettingsValues>) => void;
-  onChangeNested?: (ns: 'notifications', patch: Partial<SettingsValues['notifications']>) => void;
+  onChangeNested?: <K extends 'notifications' | 'drivingConditions'>(
+    ns: K, 
+    patch: Partial<SettingsValues[K]>
+  ) => void;
   onEditProfile?: () => void;
   onChangePhoto?: () => void;
   onResetPassword?: () => void;
@@ -50,8 +58,6 @@ export interface SettingsProps {
 }
 
 const SECTION_SPACING = 16;
-
-
 
 const Settings: React.FC<SettingsProps> = ({
   values,
@@ -70,15 +76,24 @@ const Settings: React.FC<SettingsProps> = ({
     (k: keyof SettingsValues, v: any) => onChange({ [k]: v } as Partial<SettingsValues>),
     [onChange]
   );
+  
   const setNotif = useCallback(
     (k: keyof SettingsValues['notifications'], v: boolean) =>
       onChangeNested?.('notifications', { [k]: v }),
     [onChangeNested]
   );
-    const navigation = useNavigation<NavigationProp>();
-    const backToMainPage = (): void => {
-        navigation.navigate('MainPage');
-    };
+
+  const setDrivingCondition = useCallback(
+    (k: keyof SettingsValues['drivingConditions'], v: boolean) =>
+      onChangeNested?.('drivingConditions', { [k]: v }),
+    [onChangeNested]
+  );
+
+  const navigation = useNavigation<NavigationProp>();
+  const backToMainPage = (): void => {
+      navigation.navigate('MainPage');
+  };
+
   return (
     <ScrollView contentContainerStyle={[styles.container, contentContainerStyle]}>
       <Section 
@@ -118,16 +133,6 @@ const Settings: React.FC<SettingsProps> = ({
         </Row>
       </Section>
 
-      <Section title="Units">
-        <Row title="Measurement Units" noRightPadding>
-          <Segmented
-            options={[{ k: 'metric', l: 'Metric' }, { k: 'imperial', l: 'Imperial' }]}
-            value={values.units}
-            onChange={(v) => set('units', v)}
-          />
-        </Row>
-      </Section>
-
       <Section title="Navigation">
         <Row title="Map type" noRightPadding>
           <Segmented
@@ -151,6 +156,12 @@ const Settings: React.FC<SettingsProps> = ({
             onChange={(v) => set('routePreference', v)}
           />
         </Row>
+        
+        <SwitchRow title="Daytime driving" value={values.drivingConditions.day} onValueChange={(v) => setDrivingCondition('day', v)} />
+        <SwitchRow title="Night driving" value={values.drivingConditions.night} onValueChange={(v) => setDrivingCondition('night', v)} />
+        <SwitchRow title="Rainy conditions" value={values.drivingConditions.rain} onValueChange={(v) => setDrivingCondition('rain', v)} />
+        <SwitchRow title="Snowy conditions" value={values.drivingConditions.snow} onValueChange={(v) => setDrivingCondition('snow', v)} />
+
         <SwitchRow title="Voice guidance" value={values.voiceGuidance} onValueChange={(v) => set('voiceGuidance', v)} />
         <SwitchRow title="Avoid tolls" value={values.avoidTolls} onValueChange={(v) => set('avoidTolls', v)} />
         <SwitchRow title="Avoid highways" value={values.avoidHighways} onValueChange={(v) => set('avoidHighways', v)} />
