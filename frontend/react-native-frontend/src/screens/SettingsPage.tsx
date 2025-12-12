@@ -22,20 +22,18 @@ const DEFAULT_VALUES: SettingsValues = {
 };
 
 
-// --- Firestore: Load Settings ---
+
 async function loadUserSettings(uid: string): Promise<SettingsValues> {
   const ref = doc(FIREBASE_DB, "users", uid);
   const snap = await getDoc(ref);
 
   if (!snap.exists()) {
-    // First time → write defaults
     await setDoc(ref, { settings: DEFAULT_VALUES });
     return DEFAULT_VALUES;
   }
 
   const data = snap.data()?.settings || {};
 
-  // Merge Firestore data with defaults
   return {
     ...DEFAULT_VALUES,
     ...data,
@@ -50,7 +48,7 @@ async function loadUserSettings(uid: string): Promise<SettingsValues> {
   };
 }
 
-// --- Firestore: Save Settings ---
+
 async function saveUserSettings(uid: string, values: SettingsValues) {
   const ref = doc(FIREBASE_DB, "users", uid);
   await setDoc(ref, { settings: values }, { merge: true });
