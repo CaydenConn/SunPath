@@ -87,7 +87,7 @@ This project consists of a Flask backend and a React Native (Expo) frontend.
    FIREBASE_MESSAGING_SENDER_ID=your_sender_id
    FIREBASE_APP_ID=your_app_id
    
-   # Backend API URL (use your computer's IP address if testing on device, or localhost for simulator)
+   # Backend API URL (should be the same as what flask is running on)
    API_BASE_URL=http://<YOUR_IP_ADDRESS>:5000
    
    # Google Places API (for address autocomplete)
