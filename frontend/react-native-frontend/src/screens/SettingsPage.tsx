@@ -5,6 +5,8 @@ import Settings, { SettingsValues } from '../components/Settings';
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import SafeScreen from '../components/SafeScreen';
+import { FIREBASE_DB } from '../../FirebaseConfig';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const STORAGE_KEY = 'accountSettings';
 
@@ -18,6 +20,39 @@ const DEFAULT_VALUES: SettingsValues = {
   notifications: { dailySummary: false, severeAlerts: true },
   drivingConditions: { day: true, night: true, rain: true, snow: false },
 };
+
+
+
+async function loadUserSettings(uid: string): Promise<SettingsValues> {
+  const ref = doc(FIREBASE_DB, "users", uid);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    await setDoc(ref, { settings: DEFAULT_VALUES });
+    return DEFAULT_VALUES;
+  }
+
+  const data = snap.data()?.settings || {};
+
+  return {
+    ...DEFAULT_VALUES,
+    ...data,
+    notifications: {
+      ...DEFAULT_VALUES.notifications,
+      ...(data.notifications || {})
+    },
+    drivingConditions: {
+      ...DEFAULT_VALUES.drivingConditions,
+      ...(data.drivingConditions || {})
+    }
+  };
+}
+
+
+async function saveUserSettings(uid: string, values: SettingsValues) {
+  const ref = doc(FIREBASE_DB, "users", uid);
+  await setDoc(ref, { settings: values }, { merge: true });
+}
 
 const SettingsPage: React.FC = () => {
   const systemScheme = useColorScheme();
@@ -85,26 +120,31 @@ const SettingsPage: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as Partial<SettingsValues>;
-          setValues((prev) => ({
-            ...prev,
-            ...parsed,
-            notifications: { ...prev.notifications, ...(parsed.notifications ?? {}) },
-            drivingConditions: { ...prev.drivingConditions, ...(parsed.drivingConditions ?? {}) },
-          }));
-        }
-      } catch {}
+    const uid = FIREBASE_AUTH.currentUser?.uid;
+    if (!uid) return;
+
+    try {
+      const loaded = await loadUserSettings(uid);
+      setValues(loaded);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(loaded));
+    } catch (err) {
+      console.log("Failed to load Firestore settings:", err);
+    }
     })();
   }, []);
 
   useEffect(() => {
     (async () => {
-      try {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(values));
-      } catch {}
+    const uid = FIREBASE_AUTH.currentUser?.uid;
+    if (!uid) return;
+
+    try {
+      // Save both locally and in Firestore
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(values));
+      await saveUserSettings(uid, values);
+    } catch (err) {
+      console.log("Failed to save settings:", err);
+    }
     })();
   }, [values]);
 
